@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Header & Watermark ---
+# --- UI Header ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -29,6 +29,7 @@ show_header() {
 }
 
 # --- Management Sub-Menu ---
+# Standardized for all 7 primary hosting options
 manage_tool() {
     local tool_name=$1
     echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
@@ -44,7 +45,6 @@ manage_tool() {
 
 # --- Tool Modules ---
 
-# [1] Panel Management
 manage_panel() {
     local choice=$(manage_tool "Pterodactyl Panel")
     case $choice in
@@ -70,32 +70,32 @@ EOF
     esac
 }
 
-# [5] Cloudflare Management (Fixed Installation Flow)
 manage_cloudflare() {
     local choice=$(manage_tool "Cloudflare Setup")
     case $choice in
         1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
         2) 
-            # Step 1: Binary Download First (Crucial for execution)
             echo -e "${CYAN}🚀 Downloading cloudflared binary...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
-            
-            # Step 2: Display prompt with exact SS phrasing
             echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
             echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
             echo -ne "> "
             read -r cf_input
-            
-            # Step 3: Parse and Install
-            if [[ $cf_input == *"cloudflared"* ]]; then
-                eval "$cf_input"
-            else
-                sudo cloudflared service install "$cf_input"
-            fi
+            [[ $cf_input == *"cloudflared"* ]] && eval "$cf_input" || sudo cloudflared service install "$cf_input"
             ;;
         3) sudo apt-get install --reinstall cloudflared ;;
         4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
+    esac
+}
+
+manage_tailscale() {
+    local choice=$(manage_tool "Tailscale")
+    case $choice in
+        1) tailscale status ;;
+        2) curl -fsSL https://tailscale.com/install.sh | sh && tailscale up ;;
+        3) apt-get install --reinstall tailscale ;;
+        4) tailscale down && apt remove tailscale -y ;;
     esac
 }
 
@@ -117,7 +117,9 @@ while true; do
     read -r main_choice
     case $main_choice in
         1) manage_panel ;;
+        2) manage_tool "Wings" ;; # Add specific Wings logic here
         5) manage_cloudflare ;;
+        7) manage_tailscale ;;
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
