@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Color Profile (Jishnu Exact) ---
+# --- Color Profile (Exact Jishnu Aesthetics) ---
 PINK='\033[38;5;203m'
 GOLD='\033[38;5;214m'
 CYAN='\033[38;5;51m'
@@ -29,13 +29,12 @@ show_header() {
 }
 
 # --- Standardized Management Sub-Menu ---
-# This ensures every option asks for Status, Install, Repair, or Uninstall
 manage_tool() {
     local tool_name=$1
     echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
     echo -e "  1) Check Status"
     echo -e "  2) Install Fresh"
-    echo -e "  3) Repair"
+    echo -e "  3) Repair / Update"
     echo -e "  4) Uninstall"
     echo -e "  5) Back"
     echo -ne "\n  Select action: "
@@ -43,33 +42,15 @@ manage_tool() {
     echo $action
 }
 
-# --- Cloudflare Module (Fixed) ---
-manage_cloudflare() {
-    local choice=$(manage_tool "Cloudflare Zero Trust")
-    case $choice in
-        1) systemctl status cloudflared ;;
-        2) 
-            echo -e "${CYAN}Downloading cloudflared binary...${NC}"
-            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
-            sudo dpkg -i cf.deb && rm cf.deb
-            echo -e "🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
-            echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
-            echo -ne "> "
-            read cf_input
-            [[ $cf_input == *"cloudflared"* ]] && eval $cf_input || sudo cloudflared service install "$cf_input"
-            ;;
-        3) sudo apt-get install --reinstall cloudflared ;;
-        4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
-    esac
-}
+# --- Functional Tool Modules ---
 
-# --- Panel Module ---
+# [1] Panel Installation
 manage_panel() {
     local choice=$(manage_tool "Pterodactyl Panel")
     case $choice in
-        1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}Installed${NC}" || echo -e "${RED}Not Found${NC}" ;;
+        1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
         2) 
-            echo -ne "Enter FQDN: "
+            echo -ne "  ${CYAN}[INPUT]${NC} Enter FQDN: "
             read fqdn
             bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
@@ -85,7 +66,30 @@ y
 EOF
             ;;
         3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
-        4) rm -rf /var/www/pterodactyl ;;
+        4) rm -rf /var/www/pterodactyl && echo "Panel Removed." ;;
+    esac
+}
+
+# [5] Cloudflare Zero Trust (Fixed Flow)
+manage_cloudflare() {
+    local choice=$(manage_tool "Cloudflare Setup")
+    case $choice in
+        1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
+        2) 
+            # Step 1: Binary Download First
+            echo -e "${CYAN}🚀 Downloading cloudflared binary...${NC}"
+            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+            sudo dpkg -i cf.deb && rm cf.deb
+            
+            # Step 2: Prompt for Token (Matches SS Phrasing)
+            echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
+            echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
+            echo -ne "> "
+            read cf_input
+            [[ $cf_input == *"cloudflared"* ]] && eval $cf_input || sudo cloudflared service install "$cf_input"
+            ;;
+        3) sudo apt-get install --reinstall cloudflared ;;
+        4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
     esac
 }
 
@@ -107,9 +111,12 @@ while true; do
     read main_choice
     case $main_choice in
         1) manage_panel ;;
-        2) manage_tool "Wings" ;; # Add specific Wings logic here
+        2) # Add Wings logic here
+           ;;
         5) manage_cloudflare ;;
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
+    echo -e "\n${GOLD}Execution complete.${NC}"
+    sleep 2
 done
