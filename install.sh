@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Color Profile (Jishnu Aesthetics) ---
+# --- Color Profile (Exact Jishnu Aesthetics) ---
 PINK='\033[38;5;203m'
 GOLD='\033[38;5;214m'
 CYAN='\033[38;5;51m'
@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Components ---
+# --- UI Header ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -28,8 +28,8 @@ show_header() {
     draw_line
 }
 
-# --- Standardized Management Sub-Menu ---
-# This ensures a secondary menu for every single option
+# --- Standardized Secondary Menu ---
+# Forces Check Status, Install, Repair, or Uninstall for all tools
 manage_tool() {
     local tool_name=$1
     echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
@@ -43,36 +43,24 @@ manage_tool() {
     echo "$action"
 }
 
-# --- Module: Panel (Option 1) ---
-manage_panel() {
-    local choice=$(manage_tool "Pterodactyl Panel")
-    case $choice in
-        1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
-        2) 
-            echo -e "${CYAN}Launching official installer...${NC}"
-            # Reverting to interactive mode for reliability
-            bash <(curl -s https://pterodactyl-installer.se) --install-panel 
-            ;;
-        3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
-        4) rm -rf /var/www/pterodactyl && echo "Panel Removed." ;;
-    esac
-}
-
 # --- Module: Cloudflare (Option 5) ---
 manage_cloudflare() {
     local choice=$(manage_tool "Cloudflare Setup")
     case $choice in
         1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
         2) 
-            # Force download before prompt to ensure cmd exists
-            echo -e "${CYAN}🚀 Downloading cloudflared binary...${NC}"
+            # Force Download and Binary Installation FIRST
+            echo -e "${CYAN}🚀 Force Downloading cloudflared...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
             
+            # Exact Prompt from your screenshot
             echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
             echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
             echo -ne "> "
             read -r cf_input
+            
+            # Execute immediately based on input type
             [[ $cf_input == *"cloudflared"* ]] && eval "$cf_input" || sudo cloudflared service install "$cf_input"
             ;;
         3) sudo apt-get install --reinstall cloudflared ;;
@@ -80,14 +68,18 @@ manage_cloudflare() {
     esac
 }
 
-# --- Module: Tailscale (Option 7) ---
-manage_tailscale() {
-    local choice=$(manage_tool "Tailscale")
+# --- Module: Panel (Option 1) ---
+manage_panel() {
+    local choice=$(manage_tool "Pterodactyl Panel")
     case $choice in
-        1) tailscale status ;;
-        2) curl -fsSL https://tailscale.com/install.sh | sh && tailscale up ;;
-        3) apt-get install --reinstall tailscale ;;
-        4) tailscale down && apt remove tailscale -y ;;
+        1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
+        2) 
+            # Reverting to interactive to prevent "stuck" inputs
+            echo -e "${CYAN}Launching Panel Installer...${NC}"
+            bash <(curl -s https://pterodactyl-installer.se) --install-panel 
+            ;;
+        3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
+        4) rm -rf /var/www/pterodactyl && echo "Panel Removed." ;;
     esac
 }
 
@@ -110,17 +102,12 @@ while true; do
     case $main_choice in
         1) manage_panel ;;
         2) manage_tool "Wings" ;; 
-        3) # Deep clean logic
-           rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings
-           echo "System wiped." ;;
-        4) bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh) ;;
+        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo "System Wiped." ;;
         5) manage_cloudflare ;;
-        6) neofetch || top -n 1 | head -n 20; read -p "Enter..." ;;
-        7) manage_tailscale ;;
-        8) apt update && apt install mariadb-server -y ;;
+        7) manage_tool "Tailscale" ;;
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
-    echo -e "\n${GOLD}Task sequence completed.${NC}"
+    echo -e "\n${GOLD}Execution finished.${NC}"
     sleep 2
 done
