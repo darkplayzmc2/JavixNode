@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Color Profile (Jishnu Style) ---
+# --- Color Profile ---
 PINK='\033[38;5;203m'
 GOLD='\033[38;5;214m'
 CYAN='\033[38;5;51m'
@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Components ---
+# --- UI Header ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -28,27 +28,14 @@ show_header() {
     draw_line
 }
 
-# --- Action Wrapper ---
-# Standardizes the "Install or Delete" prompt for every option
-select_action() {
-    local tool=$1
-    echo -e "\n  Selected: ${CYAN}$tool${NC}"
-    echo -e "  1) Install / Setup"
-    echo -e "  2) Uninstall / Delete"
-    echo -e "  3) Back"
-    echo -ne "\n  Select an action: "
-    read action
-    echo $action
-}
+# --- Tool Logic ---
 
-# --- Tool Modules ---
-
-manage_panel() {
-    local act=$(select_action "Panel Installation")
-    if [ "$act" == "1" ]; then
-        echo -ne "  Enter FQDN: "
-        read fqdn
-        bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
+# [1] Panel Installation
+install_panel() {
+    echo -ne "\n  ${CYAN}[INPUT]${NC} Enter FQDN (e.g. panel.example.com): "
+    read fqdn
+    # Automated Pterodactyl Installation
+    bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 $fqdn
 UTC
@@ -60,47 +47,63 @@ y
 y
 y
 EOF
-    elif [ "$act" == "2" ]; then
-        rm -rf /var/www/pterodactyl
-        echo -e "${RED}Panel removed.${NC}"
-        sleep 1
-    fi
 }
 
-manage_wings() {
-    local act=$(select_action "Wings Installation")
-    if [ "$act" == "1" ]; then
-        echo -ne "  Paste JSON Config: "
-        read -r json
-        mkdir -p /etc/pterodactyl && echo "$json" > /etc/pterodactyl/config.yml
-        systemctl enable --now wings
-    elif [ "$act" == "2" ]; then
-        systemctl stop wings
-        rm -rf /etc/pterodactyl /usr/local/bin/wings
-        echo -e "${RED}Wings removed.${NC}"
-        sleep 1
-    fi
+# [2] Wings Installation 
+install_wings() {
+    echo -ne "\n  ${CYAN}[INPUT]${NC} Paste Configuration JSON from Panel: "
+    read -r config_json
+    mkdir -p /etc/pterodactyl
+    echo "$config_json" > /etc/pterodactyl/config.yml
+    # Install Wings binary
+    curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64"
+    chmod u+x /usr/local/bin/wings
+    systemctl enable --now wings
+    echo -e "${GREEN}✔ Wings is online.${NC}"
 }
 
-manage_tailscale() {
-    local act=$(select_action "Tailscale")
-    if [ "$act" == "1" ]; then
-        curl -fsSL https://tailscale.com/install.sh | sh && tailscale up
-    elif [ "$act" == "2" ]; then
-        tailscale down && apt remove tailscale -y
-    fi
+# [3] Uninstall Tools (Deep Clean)
+uninstall_tools() {
+    echo -e "${RED}⚠ Purging all Pterodactyl files...${NC}"
+    systemctl stop wings 2>/dev/null
+    rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings
+    echo -e "${GREEN}✔ System cleaned.${NC}"
 }
 
-manage_cloudflare() {
-    local act=$(select_action "Cloudflare Setup")
-    if [ "$act" == "1" ]; then
-        echo -ne "  Paste Token/Cmd: "
-        read cf_input
-        if [[ $cf_input == *"cloudflared"* ]]; then eval $cf_input; else cloudflared service install $cf_input; fi
-    elif [ "$act" == "2" ]; then
-        cloudflared service uninstall
-        rm -rf /etc/cloudflared
+# [4] Blueprint+Theme+Extensions
+install_blueprint() {
+    echo -e "${CYAN}🚀 Installing Blueprint Framework...${NC}"
+    bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
+}
+
+# [5] Cloudflare Setup (Zero Trust)
+setup_cloudflare() {
+    if ! command -v cloudflared &> /dev/null; then
+        curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+        dpkg -i cf.deb && rm cf.deb
     fi
+    echo -ne "  ${CYAN}[INPUT]${NC} Paste Tunnel Token or Full Command: "
+    read cf_input
+    if [[ $cf_input == *"cloudflared"* ]]; then eval $cf_input; else cloudflared service install $cf_input; fi
+}
+
+# [6] System Information
+system_info() {
+    if command -v neofetch &> /dev/null; then neofetch; else top -n 1 | head -n 20; fi
+    read -p "Press Enter to return..."
+}
+
+# [7] Tailscale (install + up)
+setup_tailscale() {
+    curl -fsSL https://tailscale.com/install.sh | sh
+    tailscale up
+    echo -e "${GREEN}✔ Tailscale IP: $(tailscale ip -4)${NC}"
+}
+
+# [8] Database Setup
+setup_database() {
+    apt update && apt install mariadb-server -y
+    mysql_secure_installation
 }
 
 # --- Main Selection Loop ---
@@ -120,15 +123,17 @@ while true; do
     
     read choice
     case $choice in
-        1) manage_panel ;;
-        2) manage_wings ;;
-        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo "Purged."; sleep 1 ;;
-        4) bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh) ;;
-        5) manage_cloudflare ;;
-        6) neofetch || top -n 1 ;;
-        7) manage_tailscale ;;
-        8) apt install mariadb-server -y ;;
+        1) install_panel ;;
+        2) install_wings ;;
+        3) uninstall_tools ;;
+        4) install_blueprint ;;
+        5) setup_cloudflare ;;
+        6) system_info ;;
+        7) setup_tailscale ;;
+        8) setup_database ;;
         0) clear; exit 0 ;;
-        *) sleep 1 ;;
+        *) echo -e "${RED}Invalid Option${NC}"; sleep 1 ;;
     esac
+    echo -e "\n${GOLD}Task finished.${NC}"
+    sleep 2
 done
