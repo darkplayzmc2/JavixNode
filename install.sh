@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Color Profile (Exact Jishnu Aesthetics) ---
+# --- Color Profile (Exact Aesthetics) ---
 PINK='\033[38;5;203m'
 GOLD='\033[38;5;214m'
 CYAN='\033[38;5;51m'
@@ -28,7 +28,7 @@ show_header() {
     draw_line
 }
 
-# --- Standardized Management Sub-Menu ---
+# --- Management Sub-Menu ---
 manage_tool() {
     local tool_name=$1
     echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
@@ -42,9 +42,9 @@ manage_tool() {
     echo $action
 }
 
-# --- Functional Tool Modules ---
+# --- Tool Modules ---
 
-# [1] Panel Installation
+# [1] Panel Management
 manage_panel() {
     local choice=$(manage_tool "Pterodactyl Panel")
     case $choice in
@@ -70,18 +70,15 @@ EOF
     esac
 }
 
-# [5] Cloudflare Zero Trust (Fixed Flow)
+# [5] Cloudflare Management (Fixed Flow)
 manage_cloudflare() {
     local choice=$(manage_tool "Cloudflare Setup")
     case $choice in
         1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
         2) 
-            # Step 1: Binary Download First
             echo -e "${CYAN}🚀 Downloading cloudflared binary...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
-            
-            # Step 2: Prompt for Token (Matches SS Phrasing)
             echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
             echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
             echo -ne "> "
@@ -111,12 +108,8 @@ while true; do
     read main_choice
     case $main_choice in
         1) manage_panel ;;
-        2) # Add Wings logic here
-           ;;
         5) manage_cloudflare ;;
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
-    echo -e "\n${GOLD}Execution complete.${NC}"
-    sleep 2
 done
