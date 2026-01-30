@@ -28,47 +28,50 @@ show_header() {
     draw_line
 }
 
-# --- Cloudflare Setup Logic ---
-setup_cloudflare() {
-    clear
-    echo -e "${CYAN}🚀 Initializing Cloudflare Zero Trust Setup...${NC}"
-    
-    # 1. Download and Install Phase (Happens First)
-    if ! command -v cloudflared &> /dev/null; then
-        echo -e "${GOLD}Downloading and installing cloudflared binary...${NC}"
-        curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
-        sudo dpkg -i cf.deb && rm cf.deb
-        echo -e "${GREEN}✔ Download and Installation complete.${NC}"
-    else
-        echo -e "${GREEN}✔ cloudflared is already installed.${NC}"
-    fi
-
-    draw_line
-    
-    # 2. Prompt Phase (Comes after download)
-    echo -e "🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
-    echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
-    echo -ne "> "
-    read cf_input
-
-    # 3. Execution Phase
-    if [[ $cf_input == *"cloudflared"* ]]; then
-        echo -e "${CYAN}Executing full installation command...${NC}"
-        eval $cf_input
-    else
-        echo -e "${CYAN}Installing service using provided token...${NC}"
-        sudo cloudflared service install "$cf_input"
-    fi
-
-    echo -e "\n${GREEN}✔ Cloudflare setup sequence finished.${NC}"
-    read -p "Press Enter to return to menu..."
+# --- Standardized Management Sub-Menu ---
+# This ensures every option asks for Status, Install, Repair, or Uninstall
+manage_tool() {
+    local tool_name=$1
+    echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
+    echo -e "  1) Check Status"
+    echo -e "  2) Install Fresh"
+    echo -e "  3) Repair"
+    echo -e "  4) Uninstall"
+    echo -e "  5) Back"
+    echo -ne "\n  Select action: "
+    read action
+    echo $action
 }
 
-# --- Other Tool Stubs ---
-install_panel() {
-    echo -ne "\n  ${CYAN}[INPUT]${NC} Enter FQDN: "
-    read fqdn
-    bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
+# --- Cloudflare Module (Fixed) ---
+manage_cloudflare() {
+    local choice=$(manage_tool "Cloudflare Zero Trust")
+    case $choice in
+        1) systemctl status cloudflared ;;
+        2) 
+            echo -e "${CYAN}Downloading cloudflared binary...${NC}"
+            curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+            sudo dpkg -i cf.deb && rm cf.deb
+            echo -e "🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
+            echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
+            echo -ne "> "
+            read cf_input
+            [[ $cf_input == *"cloudflared"* ]] && eval $cf_input || sudo cloudflared service install "$cf_input"
+            ;;
+        3) sudo apt-get install --reinstall cloudflared ;;
+        4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
+    esac
+}
+
+# --- Panel Module ---
+manage_panel() {
+    local choice=$(manage_tool "Pterodactyl Panel")
+    case $choice in
+        1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}Installed${NC}" || echo -e "${RED}Not Found${NC}" ;;
+        2) 
+            echo -ne "Enter FQDN: "
+            read fqdn
+            bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 $fqdn
 UTC
@@ -80,6 +83,10 @@ y
 y
 y
 EOF
+            ;;
+        3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
+        4) rm -rf /var/www/pterodactyl ;;
+    esac
 }
 
 # --- Main Selection Loop ---
@@ -97,11 +104,12 @@ while true; do
     draw_line
     echo -ne "  📝 Select an option [0-8]: "
     
-    read choice
-    case $choice in
-        1) install_panel ;;
-        5) setup_cloudflare ;;
+    read main_choice
+    case $main_choice in
+        1) manage_panel ;;
+        2) manage_tool "Wings" ;; # Add specific Wings logic here
+        5) manage_cloudflare ;;
         0) clear; exit 0 ;;
-        *) echo -e "${RED}Option not yet implemented or invalid.${NC}"; sleep 1 ;;
+        *) sleep 1 ;;
     esac
 done
