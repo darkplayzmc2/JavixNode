@@ -1,92 +1,83 @@
 #!/bin/bash
 
-# --- Color Profile (Exact Jishnu Aesthetics) ---
-PINK='\033[38;5;203m'
-GOLD='\033[38;5;214m'
-CYAN='\033[38;5;51m'
-RED='\033[38;5;196m'
-GREEN='\033[38;5;46m'
+# --- Javix Brand Colors ---
+V1='\033[38;5;129m' # Electric Violet
+G1='\033[38;5;118m' # Neon Green
+C1='\033[38;5;45m'  # Deep Cyan
+R1='\033[38;5;196m' # Pulse Red
+Y1='\033[38;5;220m' # Cyber Yellow
 NC='\033[0m' 
 
-# --- UI Header & Watermark ---
-draw_line() {
-    echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+# --- UI Header & Branded Watermark ---
+draw_sep() {
+    echo -e "${V1}◈────────────────────────────────────────────────────────────◈${NC}"
 }
 
 show_header() {
     clear
-    draw_line
-    echo -e "          🚀 JAVIX HOSTING MANAGER"
-    echo -e "          made by sk mohsin pasha"
-    draw_line
+    draw_sep
+    echo -e "          ${Y1}🚀 JAVIX HOSTING MANAGER${NC}"
+    echo -e "          ${C1}developed by sk mohsin pasha${NC}"
+    draw_sep
+    echo -e "${Y1}"
+    echo -e "     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗ ███████╗ "
+    echo -e "     ██║██╔══██╗██║   ██║██║╚██╗██╔╝████╗  ██║██╔═══██╗██╔══██╗██╔════╝ "
+    echo -e "     ██║███████║██║   ██║██║ ╚███╔╝ ██╔██╗ ██║██║   ██║██║  ██║█████╗   "
+    echo -e "██   ██║██╔══██║╚██╗ ██╔╝██║ ██╔██╗ ██║╚██╗██║██║   ██║██║  ██║██╔══╝   "
+    echo -e "╚█████╔╝██║  ██║ ╚████╔╝ ██║██╔╝ ██╗██║ ╚████║╚██████╔╝██████╔╝███████╗ "
+    echo -e " ╚════╝ ╚═╝  ╚═╝  ╚═══╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝ "
     echo -e "${NC}"
-    echo -e "  __  __   _   ___ _  _   __  __ ___ _  _ _   _ "
-    echo -e " |  \/  | /_\ |_ _| \| | |  \/  | __| \| | | | |"
-    echo -e " | |\/| |/ _ \ | || .  | | |\/| | _|| .  | |_| |"
-    echo -e " |_|  |_/_/ \_\___|_|\_| |_|  |_|___|_|\_|\___/ "
-    echo -e "${NC}"
-    draw_line
+    draw_sep
 }
 
 # --- Standardized Management Sub-Menu ---
-# This ensures every option follows the Status/Install/Repair/Uninstall workflow
+# Ensures a 2nd menu for every option as requested
 manage_tool() {
     local tool_name=$1
-    echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
-    echo -e "  1) Check Status"
-    echo -e "  2) Install Fresh"
-    echo -e "  3) Repair / Update"
-    echo -e "  4) Uninstall"
-    echo -e "  5) Back"
-    echo -ne "\n  Select action: "
+    echo -e "\n  ${Y1}MANAGEMENT HUB: $tool_name${NC}"
+    echo -e "  ${C1}1)${NC} Check Status"
+    echo -e "  ${C1}2)${NC} Install Fresh"
+    echo -e "  ${C1}3)${NC} Repair / Upgrade"
+    echo -e "  ${C1}4)${NC} Uninstall"
+    echo -e "  ${C1}5)${NC} Return to Menu"
+    echo -ne "\n  ${G1}Select Action > ${NC}"
     read -r sub_choice
 }
 
-# --- Tool Modules ---
-
-# [1] Panel Management
+# --- Module: Panel (Option 1) ---
 manage_panel() {
     manage_tool "Pterodactyl Panel"
     case $sub_choice in
-        1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
-        2) 
-            echo -e "${CYAN}Launching Official Pterodactyl Installer...${NC}"
-            bash <(curl -s https://pterodactyl-installer.se) --install-panel 
-            ;;
+        1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Installed${NC}" || echo -e "${R1}✘ Not Found${NC}" ;;
+        2) bash <(curl -s https://pterodactyl-installer.se) --install-panel ;;
         3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
-        4) rm -rf /var/www/pterodactyl && echo "Panel Removed." ;;
+        4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Purged.${NC}" ;;
     esac
 }
 
-# [5] Cloudflare Management (Forced Download First)
+# --- Module: Cloudflare (Option 5) ---
 manage_cloudflare() {
-    manage_tool "Cloudflare Setup"
+    manage_tool "Cloudflare Zero Trust"
     case $sub_choice in
-        1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
+        1) systemctl is-active --quiet cloudflared && echo -e "${G1}✔ Service Active${NC}" || echo -e "${R1}✘ Inactive${NC}" ;;
         2) 
-            echo -e "${CYAN}🚀 Force Downloading cloudflared binary...${NC}"
+            echo -e "${C1}🚀 Downloading Cloudflare binary...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
-            
-            echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
-            echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
+            echo -e "\n🔑 ${C1}Paste Cloudflare Tunnel token${NC}"
+            echo -e "${Y1}(sirf token ya poora command – dono chalega)${NC}"
             echo -ne "> "
             read -r cf_input
-            
-            if [[ $cf_input == *"cloudflared"* ]]; then
-                eval "$cf_input"
-            else
-                sudo cloudflared service install "$cf_input"
-            fi
+            [[ $cf_input == *"cloudflared"* ]] && eval "$cf_input" || sudo cloudflared service install "$cf_input"
             ;;
         3) sudo apt-get install --reinstall cloudflared ;;
         4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
     esac
 }
 
-# [7] Tailscale Management
+# --- Module: Tailscale (Option 7) ---
 manage_tailscale() {
-    manage_tool "Tailscale"
+    manage_tool "Tailscale VPN"
     case $sub_choice in
         1) tailscale status ;;
         2) curl -fsSL https://tailscale.com/install.sh | sh && tailscale up ;;
@@ -98,23 +89,19 @@ manage_tailscale() {
 # --- Main Selection Loop ---
 while true; do
     show_header
-    echo -e "  ${CYAN}1)${NC} Panel Installation"
-    echo -e "  ${CYAN}2)${NC} Wings Installation"
-    echo -e "  ${CYAN}3)${NC} Uninstall Tools (Deep Clean)"
-    echo -e "  ${CYAN}4)${NC} Blueprint+Theme+Extensions"
-    echo -e "  ${CYAN}5)${NC} Cloudflare Setup"
-    echo -e "  ${CYAN}6)${NC} System Information"
-    echo -e "  ${CYAN}7)${NC} Tailscale (install + up)"
-    echo -e "  ${CYAN}8)${NC} Database Setup"
-    echo -e "  ${CYAN}0)${NC} Exit"
-    draw_line
-    echo -ne "  📝 Select an option [0-8]: "
+    echo -e "  ${C1}[1]${NC} Panel Installation      ${C1}[5]${NC} Cloudflare Setup"
+    echo -e "  ${C1}[2]${NC} Wings Installation      ${C1}[6]${NC} System Information"
+    echo -e "  ${C1}[3]${NC} Deep System Purge       ${C1}[7]${NC} Tailscale (VPN)"
+    echo -e "  ${C1}[4]${NC} Theme / Extensions      ${C1}[8]${NC} Database Setup"
+    echo -e "  ${C1}[0]${NC} Terminate Session"
+    draw_sep
+    echo -ne "  ${G1}JAVIX_OS@ROOT:~$ ${NC}"
     
-    read -r main_choice
-    case $main_choice in
+    read -r choice
+    case $choice in
         1) manage_panel ;;
         2) manage_tool "Wings" ;; 
-        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo "System Wiped." ;;
+        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo -e "${R1}Wiped.${NC}" ;;
         4) bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh) ;;
         5) manage_cloudflare ;;
         6) neofetch || top -n 1 | head -n 20; read -p "Enter..." ;;
@@ -123,6 +110,6 @@ while true; do
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
-    echo -e "\n${GOLD}Task complete. Returning to menu...${NC}"
+    echo -e "\n${Y1}Operation complete. Returning to HUB...${NC}"
     sleep 2
 done
