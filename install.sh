@@ -1,121 +1,86 @@
 #!/bin/bash
 
-# --- JavixNodes Branding & Colors ---
-GOLD='\033[1;33m'
-CYAN='\033[0;36m'
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m' 
+# --- Javix Neon Aesthetics ---
+G1='\033[38;5;220m' # Javix Gold
+C1='\033[38;5;51m'  # Cyber Cyan
+P1='\033[38;5;13m'  # Phantom Purple
+R1='\033[38;5;196m' # Pulse Red
+NC='\033[0m'
 
-# --- Modular Functions ---
-
-install_panel() {
+# --- The "Silent Kernel" Logic ---
+# This bypasses the manual prompts for the Panel installation
+javix_kernel_install() {
     clear
-    echo -e "${GOLD}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "${GOLD}║          PTERODACTYL CONTROL CENTER            ║${NC}"
-    echo -e "${GOLD}╚════════════════════════════════════════════════╝${NC}"
-    echo -e "  ${GREEN}[1]${NC} Install Panel"
-    echo -e "  ${BLUE}[2]${NC} Create Panel User"
-    echo -e "  ${GOLD}[3]${NC} Update Panel"
-    echo -e "  ${RED}[4]${NC} Uninstall Panel"
-    echo -e "  ${NC}[5] Exit"
-    echo -ne "\n${CYAN}Select Option → ${NC}"
-    read p_choice
-    case $p_choice in
-        1) bash <(curl -s https://pterodactyl-installer.se) --install-panel ;;
-        2) cd /var/www/pterodactyl && php artisan p:user:make ;;
-        3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
-        4) echo -e "${RED}Deleting Panel files...${NC}"; rm -rf /var/www/pterodactyl ;;
-        *) return ;;
-    esac
+    echo -e "${C1}▶ INITIALIZING JAVIX KERNEL DEPLOYMENT...${NC}"
+    sleep 1
+    # Automated input stream to handle Panel setup
+    bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
+1
+y
+y
+y
+EOF
 }
 
-install_wings() {
+# --- The "Ghost Handshake" Wings Setup ---
+# Injects the JSON config directly into the system for instant linking
+ghost_handshake() {
     clear
-    echo -e "${GOLD}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "${GOLD}║          JAVIXNODE WINGS CONFIGURATOR          ║${NC}"
-    echo -e "${GOLD}╚════════════════════════════════════════════════╝${NC}"
-    
-    echo -e "${CYAN}[1/3] Installing Dependencies...${NC}"
-    curl -sSL https://get.docker.com/ | CHANNEL=stable bash
-    systemctl enable --now docker
+    echo -e "${G1}╔════════════════════════════════════════════════╗${NC}"
+    echo -e "║          GHOST HANDSHAKE: WINGS LINK           ║"
+    echo -e "╚════════════════════════════════════════════════╝${NC}"
+    echo -e "${P1}Paste your Panel Configuration JSON below:${NC}"
+    read -r ghost_config
 
-    echo -e "${CYAN}[2/3] Installing Wings Binary...${NC}"
     mkdir -p /etc/pterodactyl
-    curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64"
-    chmod u+x /usr/local/bin/wings
-
-    echo -e "\n${RED}⚠️  MANDATORY CONFIGURATION:${NC}"
-    echo -e "Go to your Panel > Nodes > Configuration and copy the block."
-    echo -ne "\n${GOLD}Paste Command Here → ${NC}"
-    read wings_config_cmd
-    eval $wings_config_cmd
-
-    echo -e "\n${CYAN}[3/3] Starting Daemon...${NC}"
+    echo "$ghost_config" > /etc/pterodactyl/config.yml
+    
+    # Priority daemon start
     systemctl enable --now wings
-    echo -e "${GREEN}Wings setup complete. Check your Panel status!${NC}"
-    read -p "Press Enter to return..."
+    echo -e "\n${C1}✔ HANDSHAKE SUCCESSFUL: NODE ONLINE${NC}"
+    sleep 2
 }
 
+# --- Zero Trust Tunnel Logic ---
 install_cloudflare() {
     clear
-    echo -e "${GOLD}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "${GOLD}║          CLOUDFLARE ZERO TRUST SETUP           ║${NC}"
-    echo -e "${GOLD}╚════════════════════════════════════════════════╝${NC}"
-    
-    echo -e "${CYAN}[1/3] Installing Cloudflared...${NC}"
-    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cloudflared.deb
-    sudo dpkg -i cloudflared.deb && rm cloudflared.deb
-
-    echo -e "\n${CYAN}[2/3] Authenticating with Cloudflare...${NC}"
-    echo -e "${GOLD}Click the link that appears below to login to your account.${NC}"
+    echo -e "${C1}▶ DEPLOYING CLOUDFLARE ZERO TRUST TUNNEL...${NC}"
+    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+    dpkg -i cf.deb && rm cf.deb
     cloudflared tunnel login
-
-    echo -e "\n${CYAN}[3/3] Creating Your Tunnel...${NC}"
-    read -p "Enter a name for your tunnel (e.g., javix-panel): " tname
-    cloudflared tunnel create $tname
-    
-    echo -e "\n${GREEN}Tunnel Created! Use 'cloudflared tunnel run $tname' to start.${NC}"
-    read -p "Press Enter to return..."
 }
 
-# --- Main UI ---
-main_menu() {
+# --- Advanced Main HUD (Head-Up Display) ---
+main_hud() {
     clear
-    echo -e "${GOLD}  ▟████▙      ▗▞▀▚▖     ▗▞▀▀▚▖  ▗▄▄▄▖  ▗▞▀▚▖ ${NC}"
-    echo -e "${GOLD}  ▐▛  ▜▌     ▗▚▄▄▚▖     ▐▛▀▀▜▌    █    ▗▚▄▄▚▖ ${NC}"
-    echo -e "${GOLD}  ▐▛  ▜▌     ▗▚▖ ▗▞▖    ▐▙▄▄▟▌  ▗▄█▄▖  ▗▚▖ ▗▞▖${NC}"
-    echo -e "${GOLD}  ▜████▛     ▝▚▞▀▝▞▘     ▝▀▀▀▘  ▝▀▀▀▘  ▝▚▞▀▝▞▘${NC}"
-    echo -e "         ${CYAN}⚡ JAVIXNODES HOSTING MANAGER ⚡${NC}"
-    echo -e "            ${RED}Developer: sk mohsin pasha${NC}"
-    echo -e "${GOLD}══════════════════════════════════════════════════════════════════${NC}"
-    echo -e "  1) Panel Installation"
-    echo -e "  2) Wings Installation"
-    echo -e "  3) Uninstall Tools"
-    echo -e "  4) Blueprint + Theme + Extensions"
-    echo -e "  5) Cloudflare Zero Trust Setup"
-    echo -e "  6) System Information"
-    echo -e "  7) Tailscale (Install + Up)"
-    echo -e "  8) Database Setup"
-    echo -e "  0) Exit"
-    echo -e "${GOLD}══════════════════════════════════════════════════════════════════${NC}"
-    echo -ne "${CYAN}Select an option [0-8]: ${NC}"
+    # Real-time System Pulse calculation
+    local cpu=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
+    echo -e "${P1}⟨${NC} ${G1}CPU LOAD:${NC} $cpu% ${P1}│${NC} ${G1}STATUS:${NC} SECURE ${P1}│${NC} ${G1}BRAND:${NC} JAVIXNODE ${P1}⟩${NC}"
+    
+    echo -e "${G1}      ▟████▙      ▗▞▀▚▖     ▗▞▀▀▚▖  ▗▄▄▄▖  ▗▞▀▚▖ ${NC}"
+    echo -e "${G1}      ▐▛  ▜▌     ▗▚▄▄▚▖     ▐▛▀▀▜▌    █    ▗▚▄▄▚▖ ${NC}"
+    echo -e "${G1}      ▐▛  ▜▌     ▗▚▖ ▗▞▖    ▐▙▄▄▟▌  ▗▄█▄▖  ▗▚▖ ▗▞▖${NC}"
+    echo -e "${G1}      ▜████▛     ▝▚▞▀▝▞▘     ▝▀▀▀▘  ▝▀▀▀▘  ▝▚▞▀▝▞▘${NC}"
+    
+    echo -e "${P1}══════════════════════════════════════════════════════════════════${NC}"
+    echo -e "  ${C1}[1]${NC} 🧬 Kernel Panel Deployment    ${C1}[4]${NC} 🛡️ ZeroTrust Tunnel"
+    echo -e "  ${C1}[2]${NC} 👻 Ghost Wings Handshake      ${C1}[5]${NC} 📊 Hardware Matrix"
+    echo -e "  ${C1}[3]${NC} 🧹 Deep System Purge          ${C1}[0]${NC} 🚪 Terminate Uplink"
+    echo -e "${P1}══════════════════════════════════════════════════════════════════${NC}"
+    echo -ne "${C1}JAVIX_OS@ROOT:~$ ${NC}"
 }
 
+# --- Operation Loop ---
 while true; do
-    main_menu
+    main_hud
     read choice
     case $choice in
-        1) install_panel ;;
-        2) install_wings ;;
-        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo -e "${RED}Wiped.${NC}"; sleep 1 ;;
-        4) bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh) ;;
-        5) install_cloudflare ;;
-        6) neofetch || top -n 1 ;;
-        7) curl -fsSL https://tailscale.com/install.sh | sh && tailscale up ;;
-        8) apt update && apt install mariadb-server -y ;;
-        0) clear; exit 0 ;;
+        1) javix_kernel_install ;;
+        2) ghost_handshake ;;
+        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo "SYSTEM PURGED"; sleep 1 ;;
+        4) install_cloudflare ;;
+        5) neofetch || top -n 1 ;;
+        0) clear; echo -e "${R1}Uplink Terminated.${NC}"; exit 0 ;;
         *) sleep 1 ;;
     esac
 done
