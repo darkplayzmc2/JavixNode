@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Header ---
+# --- UI Components ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -28,44 +28,58 @@ show_header() {
     draw_line
 }
 
-# --- Cloudflare Setup with Status Check ---
+# --- Cloudflare Setup Logic ---
 setup_cloudflare() {
     clear
-    echo -e "${CYAN}🚀 Cloudflare Zero Trust Manager${NC}"
-    echo -e "  1) Install Tunnel"
-    echo -e "  2) Check Tunnel Status"
-    echo -e "  3) Back"
-    echo -ne "\n  Select Option → "
-    read cf_opt
+    echo -e "${CYAN}🚀 Initializing Cloudflare Zero Trust Setup...${NC}"
+    
+    # 1. Download and Install Phase (Happens First)
+    if ! command -v cloudflared &> /dev/null; then
+        echo -e "${GOLD}Downloading and installing cloudflared binary...${NC}"
+        curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+        sudo dpkg -i cf.deb && rm cf.deb
+        echo -e "${GREEN}✔ Download and Installation complete.${NC}"
+    else
+        echo -e "${GREEN}✔ cloudflared is already installed.${NC}"
+    fi
 
-    case $cf_opt in
-        1)
-            if ! command -v cloudflared &> /dev/null; then
-                curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
-                sudo dpkg -i cf.deb && rm cf.deb
-            fi
-            echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
-            echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
-            echo -ne "> "
-            read cf_input
-            if [[ $cf_input == *"cloudflared"* ]]; then
-                eval $cf_input
-            else
-                sudo cloudflared service install "$cf_input"
-            fi
-            ;;
-        2)
-            echo -e "\n${CYAN}🔍 Checking Systemd Service...${NC}"
-            if systemctl is-active --quiet cloudflared; then
-                echo -e "${GREEN}✔ Tunnel Service: ACTIVE${NC}"
-                cloudflared tunnel status
-            else
-                echo -e "${RED}✘ Tunnel Service: INACTIVE${NC}"
-            fi
-            read -p "Press Enter to return..."
-            ;;
-        *) return ;;
-    esac
+    draw_line
+    
+    # 2. Prompt Phase (Comes after download)
+    echo -e "🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
+    echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
+    echo -ne "> "
+    read cf_input
+
+    # 3. Execution Phase
+    if [[ $cf_input == *"cloudflared"* ]]; then
+        echo -e "${CYAN}Executing full installation command...${NC}"
+        eval $cf_input
+    else
+        echo -e "${CYAN}Installing service using provided token...${NC}"
+        sudo cloudflared service install "$cf_input"
+    fi
+
+    echo -e "\n${GREEN}✔ Cloudflare setup sequence finished.${NC}"
+    read -p "Press Enter to return to menu..."
+}
+
+# --- Other Tool Stubs ---
+install_panel() {
+    echo -ne "\n  ${CYAN}[INPUT]${NC} Enter FQDN: "
+    read fqdn
+    bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
+1
+$fqdn
+UTC
+flashnodeswork@gmail.com
+pterodactyl
+pterodactyl
+$(openssl rand -base64 12)
+y
+y
+y
+EOF
 }
 
 # --- Main Selection Loop ---
@@ -85,10 +99,9 @@ while true; do
     
     read choice
     case $choice in
-        1) # Panel Logic... 
-           ;;
+        1) install_panel ;;
         5) setup_cloudflare ;;
         0) clear; exit 0 ;;
-        *) sleep 1 ;;
+        *) echo -e "${RED}Option not yet implemented or invalid.${NC}"; sleep 1 ;;
     esac
 done
