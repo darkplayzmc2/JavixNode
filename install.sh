@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Color Profile ---
+# --- Color Profile (Jishnu Exact) ---
 PINK='\033[38;5;203m'
 GOLD='\033[38;5;214m'
 CYAN='\033[38;5;51m'
@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Header ---
+# --- UI Header & Watermark ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -28,13 +28,13 @@ show_header() {
     draw_line
 }
 
-# --- Tool Logic ---
+# --- Functional Logic Modules ---
 
-# [1] Panel Installation
+# [1] Panel Installation (Silent Auto-FQDN)
 install_panel() {
-    echo -ne "\n  ${CYAN}[INPUT]${NC} Enter FQDN (e.g. panel.example.com): "
+    echo -ne "\n  ${CYAN}[INPUT]${NC} Enter FQDN (e.g. panel.javixnode.fun): "
     read fqdn
-    # Automated Pterodactyl Installation
+    # Automatic input feeding for the official installer
     bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 $fqdn
@@ -49,61 +49,65 @@ y
 EOF
 }
 
-# [2] Wings Installation 
+# [2] Wings Installation (Auto-Binary & Config)
 install_wings() {
-    echo -ne "\n  ${CYAN}[INPUT]${NC} Paste Configuration JSON from Panel: "
+    echo -ne "\n  ${CYAN}[INPUT]${NC} Paste Panel Configuration JSON: "
     read -r config_json
+    
+    # Core system setup
     mkdir -p /etc/pterodactyl
     echo "$config_json" > /etc/pterodactyl/config.yml
-    # Install Wings binary
+    
+    # Binary download and permissions
     curl -L -o /usr/local/bin/wings "https://github.com/pterodactyl/wings/releases/latest/download/wings_linux_amd64"
     chmod u+x /usr/local/bin/wings
+    
+    # Daemon activation
     systemctl enable --now wings
-    echo -e "${GREEN}✔ Wings is online.${NC}"
+    echo -e "${GREEN}✔ Wings service started and linked.${NC}"
 }
 
-# [3] Uninstall Tools (Deep Clean)
+# [3] Uninstall Tools (Deep System Wipe)
 uninstall_tools() {
-    echo -e "${RED}⚠ Purging all Pterodactyl files...${NC}"
+    echo -e "${RED}⚠ DELETING ALL HOSTING DATA...${NC}"
     systemctl stop wings 2>/dev/null
     rm -rf /var/www/pterodactyl /etc/pterodactyl /usr/local/bin/wings
-    echo -e "${GREEN}✔ System cleaned.${NC}"
+    echo -e "${GREEN}✔ System files purged.${NC}"
 }
 
 # [4] Blueprint+Theme+Extensions
 install_blueprint() {
-    echo -e "${CYAN}🚀 Installing Blueprint Framework...${NC}"
+    echo -e "${CYAN}🚀 Executing Blueprint Framework Installation...${NC}"
     bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
 }
 
-# [5] Cloudflare Setup (Zero Trust)
+# [5] Cloudflare Setup (Zero Trust Token/Cmd)
 setup_cloudflare() {
     if ! command -v cloudflared &> /dev/null; then
         curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
         dpkg -i cf.deb && rm cf.deb
     fi
-    echo -ne "  ${CYAN}[INPUT]${NC} Paste Tunnel Token or Full Command: "
+    echo -ne "  ${CYAN}[INPUT]${NC} Paste Token or Full Install Command: "
     read cf_input
-    if [[ $cf_input == *"cloudflared"* ]]; then eval $cf_input; else cloudflared service install $cf_input; fi
+    if [[ $cf_input == *"cloudflared"* ]]; then 
+        eval $cf_input 
+    else 
+        cloudflared service install $cf_input 
+    fi
 }
 
-# [6] System Information
-system_info() {
-    if command -v neofetch &> /dev/null; then neofetch; else top -n 1 | head -n 20; fi
-    read -p "Press Enter to return..."
-}
-
-# [7] Tailscale (install + up)
+# [7] Tailscale (Install + Up)
 setup_tailscale() {
     curl -fsSL https://tailscale.com/install.sh | sh
     tailscale up
-    echo -e "${GREEN}✔ Tailscale IP: $(tailscale ip -4)${NC}"
+    echo -e "${GREEN}✔ Connection Active. Tailscale IP: $(tailscale ip -4)${NC}"
 }
 
 # [8] Database Setup
 setup_database() {
+    echo -e "${CYAN}Installing MariaDB Server...${NC}"
     apt update && apt install mariadb-server -y
-    mysql_secure_installation
+    echo -e "${GREEN}✔ Database service installed.${NC}"
 }
 
 # --- Main Selection Loop ---
@@ -128,12 +132,12 @@ while true; do
         3) uninstall_tools ;;
         4) install_blueprint ;;
         5) setup_cloudflare ;;
-        6) system_info ;;
+        6) if command -v neofetch &> /dev/null; then neofetch; else top -n 1 | head -n 20; fi; read -p "Enter to return..." ;;
         7) setup_tailscale ;;
         8) setup_database ;;
         0) clear; exit 0 ;;
-        *) echo -e "${RED}Invalid Option${NC}"; sleep 1 ;;
+        *) sleep 1 ;;
     esac
-    echo -e "\n${GOLD}Task finished.${NC}"
+    echo -e "\n${GOLD}Task sequence completed.${NC}"
     sleep 2
 done
