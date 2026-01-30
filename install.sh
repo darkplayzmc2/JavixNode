@@ -27,44 +27,25 @@ show_header() {
     draw_sep
 }
 
-# --- Management Hub Template with Global Exit ---
-manage_tool() {
-    local tool_name=$1
-    echo -e "\n  ${Y1}HUB: $tool_name${NC}"
-    echo -e "  ${C1}1)${NC} Check Status"
-    echo -e "  ${C1}2)${NC} Install Fresh (Automated)"
-    echo -e "  ${C1}3)${NC} Repair / Update"
-    echo -e "  ${C1}4)${NC} Uninstall"
-    echo -e "  ${C1}5)${NC} Back to Main Menu"
-    echo -e "  ${R1}6) Exit Script${NC}"
-    echo -ne "\n  ${G1}Select Action > ${NC}"
-    read -r sub_choice
-    
-    # Handle Global Exit from Sub-Menu
-    if [ "$sub_choice" == "6" ]; then
-        echo -e "${R1}Terminating Javix Session...${NC}"
-        exit 0
-    fi
-}
+# --- Module: Panel Hub (Option 1) ---
+manage_panel() {
+    while true; do
+        echo -e "\n  ${Y1}HUB: Pterodactyl Panel${NC}"
+        echo -e "  ${C1}1)${NC} Check Status"
+        echo -e "  ${C1}2)${NC} Install Fresh (Automated)"
+        echo -e "  ${C1}3)${NC} Repair / Update"
+        echo -e "  ${C1}4)${NC} Uninstall"
+        echo -e "  ${C1}5)${NC} Back to Main Menu"
+        echo -e "  ${R1}6) Exit Script${NC}"
+        echo -ne "\n  ${G1}Select Action > ${NC}"
+        read -r sub_choice
 
-# --- Logic: Fully Automated Panel + Tunnel ---
-ghost_combo() {
-    echo -e "${Y1}👻 INITIALIZING PRE-FLIGHT DATA COLLECTION...${NC}"
-    echo -ne "${C1}Enter Domain (FQDN): ${NC}" && read -r fqdn
-    echo -ne "${C1}Enter Admin Email: ${NC}" && read -r admin_email
-    echo -ne "${C1}Paste Cloudflare Token: ${NC}" && read -r cf_token
-    
-    draw_sep
-    # 1. Cloudflare First
-    echo -e "${G1}[1/3] Deploying Cloudflare Tunnel...${NC}"
-    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
-    dpkg -i cf.deb && rm cf.deb
-    cloudflared service install "$cf_token"
-    systemctl start cloudflared
-    
-    # 2. Automated Panel (Selections forced)
-    echo -e "${G1}[2/3] Installing Panel (Silent Mode)...${NC}"
-    bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
+        case $sub_choice in
+            1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Installed${NC}" || echo -e "${R1}✘ Not Found${NC}" ;;
+            2) 
+                echo -ne "${C1}Enter Domain (FQDN): ${NC}" && read -r fqdn
+                echo -ne "${C1}Enter Admin Email: ${NC}" && read -r admin_email
+                bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 $fqdn
 UTC
@@ -76,12 +57,43 @@ y
 y
 y
 EOF
+                ;;
+            3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
+            4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Purged.${NC}" ;;
+            5) break ;; # Returns to Main Menu
+            6) exit 0 ;;
+            *) echo -e "${R1}Invalid choice${NC}" ;;
+        esac
+        echo -ne "\n${Y1}Task Finished. Press [Enter] to continue...${NC}"
+        read -r
+    done
+}
 
-    # 3. Blueprint & Theme Engine
-    echo -e "${G1}[3/3] Injecting Blueprint Framework...${NC}"
-    bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
-    
-    echo -e "${Y1}✔ GHOST COMBO SUCCESSFUL.${NC}"
+# --- Module: Wings Hub (Option 2) ---
+manage_wings() {
+    while true; do
+        echo -e "\n  ${Y1}HUB: Pterodactyl Wings${NC}"
+        echo -e "  ${C1}1)${NC} Check Status"
+        echo -e "  ${C1}2)${NC} Install Wings"
+        echo -e "  ${C1}3)${NC} Repair / Update"
+        echo -e "  ${C1}4)${NC} Uninstall"
+        echo -e "  ${C1}5)${NC} Back to Main Menu"
+        echo -e "  ${R1}6) Exit Script${NC}"
+        echo -ne "\n  ${G1}Select Action > ${NC}"
+        read -r sub_choice
+
+        case $sub_choice in
+            1) systemctl is-active --quiet wings && echo -e "${G1}✔ Wings Active${NC}" || echo -e "${R1}✘ Wings Inactive${NC}" ;;
+            2) bash <(curl -s https://pterodactyl-installer.se) --install-wings ;;
+            3) systemctl restart wings ;;
+            4) systemctl stop wings && rm -rf /etc/pterodactyl /usr/local/bin/wings ;;
+            5) break ;;
+            6) exit 0 ;;
+            *) echo -e "${R1}Invalid choice${NC}" ;;
+        esac
+        echo -ne "\n${Y1}Task Finished. Press [Enter] to continue...${NC}"
+        read -r
+    done
 }
 
 # --- Main Menu (15 Options) ---
@@ -100,12 +112,11 @@ while true; do
     
     read -r choice
     case $choice in
-        1) manage_tool "Panel";;
-        5) manage_tool "Cloudflare";;
-        9) bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh) ;;
-        10) echo -e "${C1}Enter Theme URL: ${NC}" && read url && bash <(curl -sL $url) ;;
-        11) ghost_combo ;;
-        0) echo -e "${R1}Exiting...${NC}"; exit 0 ;;
+        1) manage_panel ;;
+        2) manage_wings ;;
+        11) # Call Ghost Combo logic here
+            ;;
+        0) exit 0 ;;
         *) sleep 1 ;;
     esac
 done
