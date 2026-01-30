@@ -1,19 +1,35 @@
 #!/bin/bash
 
-# --- Javix Neon Aesthetics ---
-G1='\033[38;5;220m' # Javix Gold
-C1='\033[38;5;51m'  # Cyber Cyan
-P1='\033[38;5;13m'  # Phantom Purple
-R1='\033[38;5;196m' # Pulse Red
-NC='\033[0m'
+# --- Colors & Aesthetics ---
+GOLD='\033[1;33m'
+CYAN='\033[0;36m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+NC='\033[0m' # No Color
 
-# --- The "Silent Kernel" Logic ---
-# This bypasses the manual prompts for the Panel installation
-javix_kernel_install() {
+# --- UI Components ---
+draw_line() {
+    echo -e "${GOLD}══════════════════════════════════════════════════════════════════${NC}"
+}
+
+draw_box_top() {
+    echo -e "${GOLD}╔════════════════════════════════════════════════╗${NC}"
+}
+
+draw_box_bottom() {
+    echo -e "${GOLD}╚════════════════════════════════════════════════╝${NC}"
+}
+
+# --- Functional Logic ---
+silent_kernel_install() {
     clear
-    echo -e "${C1}▶ INITIALIZING JAVIX KERNEL DEPLOYMENT...${NC}"
+    draw_box_top
+    echo -e "║${CYAN}   🧬  INITIALIZING KERNEL PANEL DEPLOYMENT...   ${NC}║"
+    draw_box_bottom
     sleep 1
-    # Automated input stream to handle Panel setup
+    # Automated input for Pterodactyl Panel
     bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 y
@@ -22,65 +38,62 @@ y
 EOF
 }
 
-# --- The "Ghost Handshake" Wings Setup ---
-# Injects the JSON config directly into the system for instant linking
 ghost_handshake() {
     clear
-    echo -e "${G1}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "║          GHOST HANDSHAKE: WINGS LINK           ║"
-    echo -e "╚════════════════════════════════════════════════╝${NC}"
-    echo -e "${P1}Paste your Panel Configuration JSON below:${NC}"
+    draw_box_top
+    echo -e "║${PURPLE}   👻  GHOST HANDSHAKE: WINGS SECURE LINK        ${NC}║"
+    draw_box_bottom
+    echo -e "\n${BLUE}📂 Please paste your Panel Configuration JSON below:${NC}"
     read -r ghost_config
 
     mkdir -p /etc/pterodactyl
     echo "$ghost_config" > /etc/pterodactyl/config.yml
     
-    # Priority daemon start
     systemctl enable --now wings
-    echo -e "\n${C1}✔ HANDSHAKE SUCCESSFUL: NODE ONLINE${NC}"
-    sleep 2
+    echo -e "\n${GREEN}✔ HANDSHAKE SUCCESSFUL: NODE IS ONLINE${NC}"
+    read -p "Press Enter to return..."
 }
 
-# --- Zero Trust Tunnel Logic ---
-install_cloudflare() {
-    clear
-    echo -e "${C1}▶ DEPLOYING CLOUDFLARE ZERO TRUST TUNNEL...${NC}"
-    curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
-    dpkg -i cf.deb && rm cf.deb
-    cloudflared tunnel login
-}
-
-# --- Advanced Main HUD (Head-Up Display) ---
+# --- Main HUD ---
 main_hud() {
     clear
     # Real-time System Pulse calculation
     local cpu=$(top -bn1 | grep "Cpu(s)" | sed "s/.*, *\([0-9.]*\)%* id.*/\1/" | awk '{print 100 - $1}')
-    echo -e "${P1}⟨${NC} ${G1}CPU LOAD:${NC} $cpu% ${P1}│${NC} ${G1}STATUS:${NC} SECURE ${P1}│${NC} ${G1}BRAND:${NC} JAVIXNODE ${P1}⟩${NC}"
+    echo -e "${PURPLE}⟨${NC} ${GOLD}CPU LOAD:${NC} $cpu% ${PURPLE}│${NC} ${GOLD}STATUS:${NC} SECURE ${PURPLE}│${NC} ${GOLD}BRAND:${NC} JAVIXNODE ${PURPLE}⟩${NC}"
     
-    echo -e "${G1}      ▟████▙      ▗▞▀▚▖     ▗▞▀▀▚▖  ▗▄▄▄▖  ▗▞▀▚▖ ${NC}"
-    echo -e "${G1}      ▐▛  ▜▌     ▗▚▄▄▚▖     ▐▛▀▀▜▌    █    ▗▚▄▄▚▖ ${NC}"
-    echo -e "${G1}      ▐▛  ▜▌     ▗▚▖ ▗▞▖    ▐▙▄▄▟▌  ▗▄█▄▖  ▗▚▖ ▗▞▖${NC}"
-    echo -e "${G1}      ▜████▛     ▝▚▞▀▝▞▘     ▝▀▀▀▘  ▝▀▀▀▘  ▝▚▞▀▝▞▘${NC}"
+    echo -e "${GOLD}      ▟████▙      ▗▞▀▚▖     ▗▞▀▀▚▖  ▗▄▄▄▖  ▗▞▀▚▖ ${NC}"
+    echo -e "${GOLD}      ▐▛  ▜▌     ▗▚▄▄▚▖     ▐▛▀▀▜▌    █    ▗▚▄▄▚▖ ${NC}"
+    echo -e "${GOLD}      ▐▛  ▜▌     ▗▚▖ ▗▞▖    ▐▙▄▄▟▌  ▗▄█▄▖  ▗▚▖ ▗▞▖${NC}"
+    echo -e "${GOLD}      ▜████▛     ▝▚▞▀▝▞▘     ▝▀▀▀▘  ▝▀▀▀▘  ▝▚▞▀▝▞▘${NC}"
     
-    echo -e "${P1}══════════════════════════════════════════════════════════════════${NC}"
-    echo -e "  ${C1}[1]${NC} 🧬 Kernel Panel Deployment    ${C1}[4]${NC} 🛡️ ZeroTrust Tunnel"
-    echo -e "  ${C1}[2]${NC} 👻 Ghost Wings Handshake      ${C1}[5]${NC} 📊 Hardware Matrix"
-    echo -e "  ${C1}[3]${NC} 🧹 Deep System Purge          ${C1}[0]${NC} 🚪 Terminate Uplink"
-    echo -e "${P1}══════════════════════════════════════════════════════════════════${NC}"
-    echo -ne "${C1}JAVIX_OS@ROOT:~$ ${NC}"
+    draw_line
+    echo -e "  ${CYAN}[1]${NC} 🧬 Kernel Panel Deployment    ${CYAN}[4]${NC} 🛡️ ZeroTrust Tunnel"
+    echo -e "  ${CYAN}[2]${NC} 👻 Ghost Wings Handshake      ${CYAN}[5]${NC} 📊 Hardware Matrix"
+    echo -e "  ${CYAN}[3]${NC} 🧹 Deep System Purge          ${CYAN}[0]${NC} 🚪 Terminate Uplink"
+    draw_line
+    echo -ne "${CYAN}JAVIX_OS@ROOT:~$ ${NC}"
 }
 
-# --- Operation Loop ---
+# --- Loop ---
 while true; do
     main_hud
     read choice
     case $choice in
-        1) javix_kernel_install ;;
+        1) silent_kernel_install ;;
         2) ghost_handshake ;;
-        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo "SYSTEM PURGED"; sleep 1 ;;
-        4) install_cloudflare ;;
+        3) 
+           echo -e "${RED}🧹 PURGING SYSTEM FILES...${NC}"
+           rm -rf /var/www/pterodactyl /etc/pterodactyl
+           sleep 1 
+           ;;
+        4) 
+           echo -e "${BLUE}🛡️ DEPLOYING ZERO TRUST TUNNEL...${NC}"
+           curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
+           dpkg -i cf.deb && rm cf.deb
+           cloudflared tunnel login
+           ;;
         5) neofetch || top -n 1 ;;
-        0) clear; echo -e "${R1}Uplink Terminated.${NC}"; exit 0 ;;
+        0) clear; echo -e "${RED}🚪 Uplink Terminated.${NC}"; exit 0 ;;
         *) sleep 1 ;;
     esac
 done
