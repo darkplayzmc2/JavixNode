@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Components ---
+# --- UI Header & Watermark ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -28,8 +28,8 @@ show_header() {
     draw_line
 }
 
-# --- Standardized Sub-Menu for All Options ---
-# Every option will now trigger this menu first
+# --- Standardized Management Sub-Menu ---
+# This ensures every option follows the Status/Install/Repair/Uninstall workflow
 manage_tool() {
     local tool_name=$1
     echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
@@ -42,14 +42,15 @@ manage_tool() {
     read -r sub_choice
 }
 
-# --- Module: Panel (Option 1) ---
+# --- Tool Modules ---
+
+# [1] Panel Management
 manage_panel() {
     manage_tool "Pterodactyl Panel"
     case $sub_choice in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
         2) 
             echo -e "${CYAN}Launching Official Pterodactyl Installer...${NC}"
-            # Direct interactive call to avoid script hangs
             bash <(curl -s https://pterodactyl-installer.se) --install-panel 
             ;;
         3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
@@ -57,24 +58,21 @@ manage_panel() {
     esac
 }
 
-# --- Module: Cloudflare (Option 5) ---
+# [5] Cloudflare Management (Forced Download First)
 manage_cloudflare() {
     manage_tool "Cloudflare Setup"
     case $sub_choice in
         1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
         2) 
-            # Step 1: Force binary installation first
-            echo -e "${CYAN}🚀 Downloading cloudflared binary...${NC}"
+            echo -e "${CYAN}🚀 Force Downloading cloudflared binary...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
             
-            # Step 2: Prompt with exact phrasing from screenshot
             echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
             echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
             echo -ne "> "
             read -r cf_input
             
-            # Step 3: Parse and Install Service
             if [[ $cf_input == *"cloudflared"* ]]; then
                 eval "$cf_input"
             else
@@ -86,7 +84,7 @@ manage_cloudflare() {
     esac
 }
 
-# --- Module: Tailscale (Option 7) ---
+# [7] Tailscale Management
 manage_tailscale() {
     manage_tool "Tailscale"
     case $sub_choice in
@@ -125,6 +123,6 @@ while true; do
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
-    echo -e "\n${GOLD}Execution finished. Returning to menu...${NC}"
+    echo -e "\n${GOLD}Task complete. Returning to menu...${NC}"
     sleep 2
 done
