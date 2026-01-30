@@ -5,86 +5,82 @@ GOLD='\033[1;33m'
 CYAN='\033[0;36m'
 RED='\033[0;31m'
 GREEN='\033[0;32m'
+BLUE='\033[0;34m'
 NC='\033[0m' 
 
-# --- Option 2: IDX Tool Setup (The Working Version) ---
-idx_tool_setup() {
+# --- Modular Functions ---
+
+install_panel() {
     clear
     echo -e "${GOLD}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "${GOLD}║            IDX SYSTEM OPTIMIZATION             ║${NC}"
+    echo -e "${GOLD}║          PTERODACTYL CONTROL CENTER            ║${NC}"
     echo -e "${GOLD}╚════════════════════════════════════════════════╝${NC}"
-    
-    echo -e "\n${CYAN}[STEP 1] Checking Core Systems...${NC}"
-    sleep 1
-
-    # Check for Docker (Vital for your VPS Maker)
-    if ! command -v docker &> /dev/null; then
-        echo -e "[${RED}×${NC}] Docker: Not Found"
-        echo -e "${RED}!! Action Required: !!${NC}"
-        echo -e "You must add the following to your ${GOLD}.idx/devnix.nix${NC} file:"
-        echo -e "${CYAN}--------------------------------------"
-        echo -e "packages = [ pkgs.docker ];"
-        echo -e "services.docker.enable = true;"
-        echo -e "--------------------------------------${NC}"
-    else
-        echo -e "[${GREEN}✓${NC}] Docker: Active"
-    fi
-
-    echo -e "\n${CYAN}[STEP 2] Optimizing Permissions...${NC}"
-    # Automatically makes all scripts in your JavixNode project executable
-    chmod +x *.sh 2>/dev/null
-    echo -e "[${GREEN}✓${NC}] Shell permissions updated for JavixNode scripts."
-
-    echo -e "\n${CYAN}[STEP 3] Environment Variables...${NC}"
-    # Creates a local marker to prevent double-setup
-    mkdir -p ~/.javix && touch ~/.javix/setup_done
-    echo -e "[${GREEN}✓${NC}] Javix local environment initialized."
-
-    echo -e "\n${GREEN}Setup Complete! Re-run the script after updating devnix.nix.${NC}"
-    read -p "Press Enter to return to main menu..."
+    echo -e "  ${GREEN}[1]${NC} Install Panel"
+    echo -e "  ${BLUE}[2]${NC} Create Panel User"
+    echo -e "  ${GOLD}[3]${NC} Update Panel"
+    echo -e "  ${RED}[4]${NC} Uninstall Panel"
+    echo -e "  ${NC}[5] Exit"
+    echo -ne "\n${CYAN}Select Option → ${NC}"
+    read p_choice
+    case $p_choice in
+        1) bash <(curl -s https://pterodactyl-installer.se) --install-panel ;;
+        2) cd /var/www/pterodactyl && php artisan p:user:make ;;
+        3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
+        4) echo -e "${RED}Deleting Panel files...${NC}"; rm -rf /var/www/pterodactyl ;;
+        *) return ;;
+    esac
 }
 
-# --- Option 1: GitHub VPS Maker ---
-create_github_vps() {
+install_wings() {
     clear
-    echo -e "${GOLD}╔════════════════════════════════════════════════╗${NC}"
-    echo -e "${GOLD}║           GITHUB VPS CONFIGURATION             ║${NC}"
-    echo -e "${GOLD}╚════════════════════════════════════════════════╝${NC}"
-    read -p "  ▶ Enter VM Name: " vname
-    read -p "  ▶ Enter OS Image: " vimage
-    
-    if ! command -v docker &> /dev/null; then
-        echo -e "${RED}Error: Docker is missing. Run Option [2] first!${NC}"
-    else
-        docker run -it --name "$vname" "$vimage" /bin/bash
-    fi
+    echo -e "${CYAN}🚀 Launching Pterodactyl Wings Installer...${NC}"
+    bash <(curl -s https://pterodactyl-installer.se) --install-wings
+    read -p "Press Enter to return..."
+}
+
+install_themes() {
+    clear
+    echo -e "${GOLD}🎨 Blueprint & Theme Installer${NC}"
+    echo -e "Installing Blueprint framework..."
+    bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
     read -p "Press Enter to return..."
 }
 
 # --- Main UI ---
 main_menu() {
     clear
-    echo -e "${GOLD}      :::::::::::     :::     :::     ::: ::::::::::: :::    ::: ${NC}"
-    echo -e "${GOLD}         :+:       :+: :+:   :+:     :+:     :+:     :+:    :+:  ${NC}"
-    echo -e "${GOLD}        +:+      +:+   +:+  +:+     +:+     +:+      +:+  +:+    ${NC}"
-    echo -e "${GOLD}       +#+     +#++:++#++: +#+     +:+     +#+       +#++:+      ${NC}"
-    echo -e "${GOLD}      +#+     +#+     +#+  +#+   +#+      +#+      +#+  +#+      ${NC}"
-    echo -e "${GOLD}     #+#     #+#     #+#   #+# #+#       #+#     #+#    #+#      ${NC}"
-    echo -e "${GOLD} #######     ###     ###    #####    ########### ###    ###      ${NC}"
+    echo -e "${GOLD}  ▟████▙      ▗▞▀▚▖     ▗▞▀▀▚▖  ▗▄▄▄▖  ▗▞▀▚▖ ${NC}"
+    echo -e "${GOLD}  ▐▛  ▜▌     ▗▚▄▄▚▖     ▐▛▀▀▜▌    █    ▗▚▄▄▚▖ ${NC}"
+    echo -e "${GOLD}  ▐▛  ▜▌     ▗▚▖ ▗▞▖    ▐▙▄▄▟▌  ▗▄█▄▖  ▗▚▖ ▗▞▖${NC}"
+    echo -e "${GOLD}  ▜████▛     ▝▚▞▀▝▞▘     ▝▀▀▀▘  ▝▀▀▀▘  ▝▚▞▀▝▞▘${NC}"
+    echo -e "         ${CYAN}⚡ JAVIXNODES HOSTING MANAGER ⚡${NC}"
     echo -e "            ${RED}Developer: sk mohsin pasha${NC}"
     echo -e "${GOLD}══════════════════════════════════════════════════════════════════${NC}"
-    echo -e "\n  ${CYAN}[1]${NC} 🚀 GitHub VPS Maker"
-    echo -e "  ${CYAN}[2]${NC} 🔧 IDX Tool Setup"
-    echo -e "  ${CYAN}[0]${NC} 👋 Exit"
-    echo -ne "\n${CYAN}[INPUT]${NC} Selection: "
+    echo -e "  1) Panel Installation"
+    echo -e "  2) Wings Installation"
+    echo -e "  3) Uninstall Tools"
+    echo -e "  4) Blueprint+Theme+Extensions"
+    echo -e "  5) Cloudflare Setup"
+    echo -e "  6) System Information"
+    echo -e "  7) Tailscale (install + up)"
+    echo -e "  8) Database Setup"
+    echo -e "  0) Exit"
+    echo -e "${GOLD}══════════════════════════════════════════════════════════════════${NC}"
+    echo -ne "${CYAN}Select an option [0-8]: ${NC}"
 }
 
 while true; do
     main_menu
     read choice
     case $choice in
-        1) create_github_vps ;;
-        2) idx_tool_setup ;;
+        1) install_panel ;;
+        2) install_wings ;;
+        3) echo -e "${RED}Uninstalling...${NC}"; sleep 1 ;;
+        4) install_themes ;;
+        5) bash <(curl -s https://raw.githubusercontent.com/cloudflare/cloudflared/main/install.sh) ;;
+        6) neofetch || screenfetch || top -n 1 ;;
+        7) curl -fsSL https://tailscale.com/install.sh | sh && tailscale up ;;
+        8) apt install mariadb-server -y ;;
         0) exit 0 ;;
         *) sleep 1 ;;
     esac
