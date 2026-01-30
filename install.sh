@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# --- Color Profile (Exact Aesthetics) ---
+# --- Color Profile (Exact Jishnu Aesthetics) ---
 PINK='\033[38;5;203m'
 GOLD='\033[38;5;214m'
 CYAN='\033[38;5;51m'
@@ -8,7 +8,7 @@ RED='\033[38;5;196m'
 GREEN='\033[38;5;46m'
 NC='\033[0m' 
 
-# --- UI Components ---
+# --- UI Header & Watermark ---
 draw_line() {
     echo -e "${PINK}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
 }
@@ -38,8 +38,8 @@ manage_tool() {
     echo -e "  4) Uninstall"
     echo -e "  5) Back"
     echo -ne "\n  Select action: "
-    read action
-    echo $action
+    read -r action
+    echo "$action"
 }
 
 # --- Tool Modules ---
@@ -51,7 +51,7 @@ manage_panel() {
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
         2) 
             echo -ne "  ${CYAN}[INPUT]${NC} Enter FQDN: "
-            read fqdn
+            read -r fqdn
             bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 $fqdn
@@ -70,20 +70,29 @@ EOF
     esac
 }
 
-# [5] Cloudflare Management (Fixed Flow)
+# [5] Cloudflare Management (Fixed Installation Flow)
 manage_cloudflare() {
     local choice=$(manage_tool "Cloudflare Setup")
     case $choice in
         1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
         2) 
+            # Step 1: Binary Download First (Crucial for execution)
             echo -e "${CYAN}🚀 Downloading cloudflared binary...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
+            
+            # Step 2: Display prompt with exact SS phrasing
             echo -e "\n🔑 ${CYAN}Paste Cloudflare Tunnel token${NC}"
             echo -e "${GOLD}(sirf token ya poora command – dono chalega)${NC}"
             echo -ne "> "
-            read cf_input
-            [[ $cf_input == *"cloudflared"* ]] && eval $cf_input || sudo cloudflared service install "$cf_input"
+            read -r cf_input
+            
+            # Step 3: Parse and Install
+            if [[ $cf_input == *"cloudflared"* ]]; then
+                eval "$cf_input"
+            else
+                sudo cloudflared service install "$cf_input"
+            fi
             ;;
         3) sudo apt-get install --reinstall cloudflared ;;
         4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
@@ -105,11 +114,13 @@ while true; do
     draw_line
     echo -ne "  📝 Select an option [0-8]: "
     
-    read main_choice
+    read -r main_choice
     case $main_choice in
         1) manage_panel ;;
         5) manage_cloudflare ;;
         0) clear; exit 0 ;;
         *) sleep 1 ;;
     esac
+    echo -e "\n${GOLD}Execution sequence finished.${NC}"
+    sleep 2
 done
