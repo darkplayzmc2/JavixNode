@@ -28,8 +28,8 @@ show_header() {
     draw_line
 }
 
-# --- Standardized Secondary Menu ---
-# Forces Check Status, Install, Repair, or Uninstall for all tools
+# --- Management Sub-Menu ---
+# Standardized for all 7 primary hosting options
 manage_tool() {
     local tool_name=$1
     echo -e "\n  ${GOLD}Manage: $tool_name${NC}"
@@ -43,13 +43,13 @@ manage_tool() {
     echo "$action"
 }
 
-# --- Module: Cloudflare (Option 5) ---
+# --- Cloudflare Module (Fixed Execution) ---
 manage_cloudflare() {
     local choice=$(manage_tool "Cloudflare Setup")
     case $choice in
         1) systemctl is-active --quiet cloudflared && echo -e "${GREEN}✔ Active${NC}" || echo -e "${RED}✘ Inactive${NC}" ;;
         2) 
-            # Force Download and Binary Installation FIRST
+            # Force Download and Install FIRST
             echo -e "${CYAN}🚀 Force Downloading cloudflared...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             sudo dpkg -i cf.deb && rm cf.deb
@@ -60,22 +60,26 @@ manage_cloudflare() {
             echo -ne "> "
             read -r cf_input
             
-            # Execute immediately based on input type
-            [[ $cf_input == *"cloudflared"* ]] && eval "$cf_input" || sudo cloudflared service install "$cf_input"
+            # Direct execution based on input type
+            if [[ $cf_input == *"cloudflared"* ]]; then
+                eval "$cf_input"
+            else
+                sudo cloudflared service install "$cf_input"
+            fi
             ;;
         3) sudo apt-get install --reinstall cloudflared ;;
         4) sudo cloudflared service uninstall && sudo apt remove cloudflared -y ;;
     esac
 }
 
-# --- Module: Panel (Option 1) ---
+# --- Panel Module (Option 1) ---
 manage_panel() {
     local choice=$(manage_tool "Pterodactyl Panel")
     case $choice in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${GREEN}✔ Installed${NC}" || echo -e "${RED}✘ Not Found${NC}" ;;
         2) 
-            # Reverting to interactive to prevent "stuck" inputs
-            echo -e "${CYAN}Launching Panel Installer...${NC}"
+            echo -e "${CYAN}Launching Interactive Panel Installer...${NC}"
+            # Direct interactive execution to prevent getting "stuck"
             bash <(curl -s https://pterodactyl-installer.se) --install-panel 
             ;;
         3) cd /var/www/pterodactyl && php artisan p:upgrade ;;
@@ -102,7 +106,6 @@ while true; do
     case $main_choice in
         1) manage_panel ;;
         2) manage_tool "Wings" ;; 
-        3) rm -rf /var/www/pterodactyl /etc/pterodactyl; echo "System Wiped." ;;
         5) manage_cloudflare ;;
         7) manage_tool "Tailscale" ;;
         0) clear; exit 0 ;;
