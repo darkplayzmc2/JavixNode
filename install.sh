@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: UI FIXED EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: PANEL FIX EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -27,12 +27,11 @@ show_header() {
     draw_sep
 }
 
-# --- Core Management Hub Wrapper (FIXED UI) ---
+# --- Core Management Hub Wrapper ---
 manage_hub() {
     local tool_name=$1
     local logic_func=$2
     while true; do
-        # --- UI FIX: Clear screen and redraw header every time ---
         clear
         draw_sep
         echo -e "          ${Y1}JAVIX HUB: ${tool_name^^}${NC}"
@@ -47,35 +46,60 @@ manage_hub() {
         echo -ne "  ${G1}Select Action > ${NC}"
         read -r sub_choice
 
-        echo -e "" # Spacer
+        echo -e ""
         case $sub_choice in
             5) return ;;
             6) echo -e "${R1}Exiting...${NC}"; exit 0 ;;
             *) $logic_func "$sub_choice" ;;
         esac
         
-        echo -ne "\n${Y1}Task Done. Press [Enter] to refresh HUB...${NC}"
+        echo -ne "\n${Y1}Task Done. Press [Enter] to clean screen & refresh HUB...${NC}"
         read -r
     done
 }
 
 # --- LOGIC MODULES ---
 
-# 1. Panel
+# 1. Panel (FIXED AUTOMATION INPUTS)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
-            echo -ne "${C1}Domain: ${NC}" && read fqdn
-            echo -ne "${C1}Email: ${NC}" && read email
-            bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
-1
-$fqdn
+            echo -ne "${C1}Domain (FQDN): ${NC}" 
+            read fqdn
+            echo -e ""
+            echo -ne "${C1}Email: ${NC}" 
+            read email
+            
+            # Generate a random password for the database
+            db_pass=$(openssl rand -base64 12)
+            
+            echo -e "\n${G1}initializing Javix Autopilot for Pterodactyl...${NC}"
+            
+            # THE FIX: Explicitly send '0' first to select Panel, then feed the specific answers.
+            # 0 = Select Panel Install
+            # y = Database Config
+            # $db_pass = DB Password
+            # UTC = Timezone
+            # $email = Email for User
+            # $email = Email for Admin
+            # Admin = First Name
+            # User = Last Name
+            # $fqdn = FQDN
+            # y = UFW
+            # y = Let's Encrypt
+            # y = CheckIP Service Agreement (This failed before)
+            
+            bash <(curl -s https://pterodactyl-installer.se) <<EOF
+0
+y
+$db_pass
 UTC
 $email
-admin
-admin
-$(openssl rand -base64 12)
+$email
+Admin
+User
+$fqdn
 y
 y
 y
@@ -184,13 +208,19 @@ theme_logic() {
     esac
 }
 
-# 11. GHOST COMBO
+# 11. GHOST COMBO (Fixed Logic)
 ghost_logic() {
     case $1 in
         2)
-            echo -ne "${C1}Domain: ${NC}" && read fqdn
-            echo -ne "${C1}Email: ${NC}" && read email
-            echo -ne "${C1}CF Token: ${NC}" && read cf_token
+            echo -ne "${C1}Domain: ${NC}" 
+            read fqdn
+            echo -e ""
+            echo -ne "${C1}Email: ${NC}" 
+            read email
+            echo -e ""
+            echo -ne "${C1}CF Token: ${NC}" 
+            read cf_token
+            
             clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$clean_token" ] && clean_token=$cf_token
 
@@ -198,14 +228,18 @@ ghost_logic() {
             dpkg -i cf.deb && rm cf.deb
             cloudflared service install "$clean_token"
 
-            bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
-1
-$fqdn
+            # Re-using the corrected Panel Logic here too
+            db_pass=$(openssl rand -base64 12)
+            bash <(curl -s https://pterodactyl-installer.se) <<EOF
+0
+y
+$db_pass
 UTC
 $email
-admin
-admin
-$(openssl rand -base64 12)
+$email
+Admin
+User
+$fqdn
 y
 y
 y
