@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: NEBULA & MANUAL MODE${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: CLOUDFLARE FIX EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -45,7 +45,6 @@ manage_hub() {
         draw_sep
         
         echo -e "${G1}Select Action:${NC}"
-        # Standard read without flags to prevent UI bugs
         echo -ne "  > "
         read sub_choice
 
@@ -62,31 +61,29 @@ manage_hub() {
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (AUTO & MANUAL MODES)
+# 1. Panel (CLOUDFLARE COMPATIBLE CONFIG)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
             echo -e "\n${Y1}--- INSTALLATION MODE ---${NC}"
-            echo -e "  ${C1}A)${NC} Automatic (Javix Config)"
-            echo -e "  ${C1}B)${NC} Manual / Interactive (Official Way)"
+            echo -e "  ${C1}A)${NC} Automatic (Cloudflare Compatible)"
+            echo -e "  ${C1}B)${NC} Manual / Interactive"
             echo -ne "  > "
             read mode
 
             if [[ "$mode" == "B" || "$mode" == "b" ]]; then
-                # MANUAL MODE (The "Different Way")
+                # MANUAL MODE
                 echo -e "\n${G1}Starting Manual Installer...${NC}"
-                echo -e "${Y1}Follow the on-screen instructions manually.${NC}"
                 bash <(curl -s https://pterodactyl-installer.se)
             else
-                # AUTO MODE (Fixed Loop)
+                # AUTO MODE (CLOUDFLARE FIX)
                 echo -e "\n${Y1}--- CONFIGURATION ---${NC}"
                 
-                # Simple inputs (No loops to avoid bugs)
                 echo -e "${C1}Domain (FQDN):${NC}"
                 read -e fqdn
                 
-                echo -e "${C1}Timezone (e.g., UTC):${NC}"
+                echo -e "${C1}Timezone (e.g., Asia/Kolkata):${NC}"
                 read -e timezone
                 
                 echo -e "${C1}Email:${NC}"
@@ -101,14 +98,18 @@ panel_logic() {
                 echo -e "${C1}Admin Password:${NC}"
                 read -e admin_pass
                 
-                # Check for empty inputs
                 if [[ -z "$fqdn" || -z "$email" ]]; then
                     echo -e "${R1}Error: Domain and Email are required! Try again.${NC}"
                     return
                 fi
 
-                echo -e "\n${G1}Injecting Configuration...${NC}"
+                echo -e "\n${G1}Injecting Cloudflare-Ready Config...${NC}"
                 db_pass=$(openssl rand -base64 12)
+                
+                # THE FIX: 
+                # 1. Sets 'n' for Auto-Let's Encrypt (Prevents 502 Bad Gateway)
+                # 2. Sets 'y' for "Proceed anyways" (Ignores DNS mismatch)
+                # 3. Sets 'y' for "Assume SSL" (Required for Cloudflare)
                 
                 bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
@@ -123,6 +124,9 @@ $firstname
 $lastname
 $admin_pass
 $fqdn
+y
+n
+y
 y
 y
 y
@@ -219,7 +223,7 @@ db_logic() {
     esac
 }
 
-# 9. Blueprint & NEBULA STORE
+# 9. Blueprint & NEBULA
 bp_logic() {
     case $1 in
         1) [ -f "/usr/local/bin/blueprint" ] && echo -e "${G1}✔ Blueprint Active${NC}" || echo -e "${R1}✘ Not Installed${NC}" ;;
@@ -234,7 +238,6 @@ bp_logic() {
                 bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
             elif [[ "$bp_choice" == "B" || "$bp_choice" == "b" ]]; then
                 echo -e "${G1}Installing Nebula Theme...${NC}"
-                # Installs Nebula using the Blueprint command
                 cd /var/www/pterodactyl
                 blueprint -install nebula
             fi
@@ -243,7 +246,7 @@ bp_logic() {
     esac
 }
 
-# 10. Themes (Legacy)
+# 10. Themes
 theme_logic() {
     case $1 in
         2) echo -e "${C1}Theme URL:${NC}"; echo -ne "  > "; read url && bash <(curl -sL $url) ;;
@@ -266,6 +269,7 @@ ghost_logic() {
             cloudflared service install "$clean_token"
 
             db_pass=$(openssl rand -base64 12)
+            # Ghost Combo also updated for Cloudflare
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
@@ -279,6 +283,9 @@ Admin
 User
 $db_pass
 $fqdn
+y
+n
+y
 y
 y
 y
