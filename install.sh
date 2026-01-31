@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: ALIGNED AUTOMATION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: CUSTOM INPUTS EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -60,33 +60,75 @@ manage_hub() {
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (CORRECTED INPUT STACK)
+# 1. Panel (UPDATED WITH ALL REQUESTED INPUTS)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
+            # --- DATA COLLECTION PHASE ---
+            echo -e "${Y1}--- CONFIGURATION REQUIRED ---${NC}"
+            
             echo -ne "${C1}Domain (FQDN): ${NC}" 
             read fqdn
             echo -e ""
-            echo -ne "${C1}Email: ${NC}" 
-            read email
+
+            echo -ne "${C1}Timezone (e.g., UTC, Asia/Kolkata): ${NC}" 
+            read timezone
+            echo -e ""
+
+            echo -ne "${C1}Email (for Let's Encrypt): ${NC}" 
+            read le_email
+            echo -e ""
+
+            echo -ne "${C1}Admin Email (Login): ${NC}" 
+            read admin_email
+            echo -e ""
+
+            echo -ne "${C1}First Name: ${NC}" 
+            read firstname
+            echo -e ""
+
+            echo -ne "${C1}Last Name: ${NC}" 
+            read lastname
+            echo -e ""
+
+            echo -ne "${C1}Admin Password: ${NC}" 
+            read admin_pass
             
-            # Generate DB Password
+            # Generate DB Password silently
             db_pass=$(openssl rand -base64 12)
             
-            echo -e "\n${G1}Injecting Inputs into Installer...${NC}"
+            echo -e "\n${G1}Injecting Configuration into Installer...${NC}"
             
-            # THE FIX: Removed the extra 'y' and mapped inputs perfectly to the log you sent.
+            # --- EXECUTION PHASE (Corrected Order) ---
+            # 1. Option 0 (Install Panel)
+            # 2. Database Name (panel)
+            # 3. Database User (pterodactyl)
+            # 4. Database Password (generated)
+            # 5. Timezone (User Input)
+            # 6. Let's Encrypt Email (User Input)
+            # 7. Admin Email (User Input)
+            # 8. Admin Username (Hardcoded to 'admin' to save time)
+            # 9. First Name (User Input)
+            # 10. Last Name (User Input)
+            # 11. Admin Password (User Input)
+            # 12. FQDN (User Input)
+            # 13. Firewall (y)
+            # 14. HTTPS (y)
+            # 15. CheckIP (y)
+
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
 pterodactyl
 $db_pass
-UTC
-$email
-$email
-Admin
-User
+$timezone
+$le_email
+$admin_email
+admin
+$firstname
+$lastname
+$admin_pass
 $fqdn
 y
 y
@@ -196,15 +238,27 @@ theme_logic() {
     esac
 }
 
-# 11. GHOST COMBO (Aligned)
+# 11. GHOST COMBO (Updated with New Inputs)
 ghost_logic() {
     case $1 in
         2)
             echo -ne "${C1}Domain: ${NC}" 
             read fqdn
             echo -e ""
-            echo -ne "${C1}Email: ${NC}" 
-            read email
+            echo -ne "${C1}Timezone: ${NC}" 
+            read timezone
+            echo -e ""
+            echo -ne "${C1}Admin Email: ${NC}" 
+            read admin_email
+            echo -e ""
+            echo -ne "${C1}First Name: ${NC}" 
+            read firstname
+            echo -e ""
+            echo -ne "${C1}Last Name: ${NC}" 
+            read lastname
+            echo -e ""
+            echo -ne "${C1}Admin Password: ${NC}" 
+            read admin_pass
             echo -e ""
             echo -ne "${C1}CF Token: ${NC}" 
             read cf_token
@@ -223,11 +277,13 @@ ghost_logic() {
 panel
 pterodactyl
 $db_pass
-UTC
-$email
-$email
-Admin
-User
+$timezone
+$admin_email
+$admin_email
+admin
+$firstname
+$lastname
+$admin_pass
 $fqdn
 y
 y
