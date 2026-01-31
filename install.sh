@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: FINAL STABLE EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: NEBULA & MANUAL MODE${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -44,9 +44,10 @@ manage_hub() {
         echo -e "  ${R1}6) Global Exit${NC}"
         draw_sep
         
-        # Two-Line Input for Menu
         echo -e "${G1}Select Action:${NC}"
-        read -e -p "  > " sub_choice
+        # Standard read without flags to prevent UI bugs
+        echo -ne "  > "
+        read sub_choice
 
         case $sub_choice in
             5) return ;;
@@ -55,80 +56,61 @@ manage_hub() {
         esac
         
         echo -ne "\n${Y1}Task Done. Press [Enter] to clean screen & refresh HUB...${NC}"
-        read -e dummy
+        read dummy
     done
 }
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (TWO-LINE INPUT FIX)
+# 1. Panel (AUTO & MANUAL MODES)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
-            # --- DATA COLLECTION PHASE ---
-            echo -e "${Y1}--- CONFIGURATION REQUIRED ---${NC}"
-            
-            # Reset variables to prevent loops
-            fqdn=""
-            timezone=""
-            email=""
-            firstname=""
-            lastname=""
-            admin_pass=""
+            echo -e "\n${Y1}--- INSTALLATION MODE ---${NC}"
+            echo -e "  ${C1}A)${NC} Automatic (Javix Config)"
+            echo -e "  ${C1}B)${NC} Manual / Interactive (Official Way)"
+            echo -ne "  > "
+            read mode
 
-            # Loop 1: FQDN
-            while [[ -z "$fqdn" ]]; do
+            if [[ "$mode" == "B" || "$mode" == "b" ]]; then
+                # MANUAL MODE (The "Different Way")
+                echo -e "\n${G1}Starting Manual Installer...${NC}"
+                echo -e "${Y1}Follow the on-screen instructions manually.${NC}"
+                bash <(curl -s https://pterodactyl-installer.se)
+            else
+                # AUTO MODE (Fixed Loop)
+                echo -e "\n${Y1}--- CONFIGURATION ---${NC}"
+                
+                # Simple inputs (No loops to avoid bugs)
                 echo -e "${C1}Domain (FQDN):${NC}"
-                read -e -p "  > " fqdn
-            done
-            
-            # Loop 2: Timezone
-            while [[ -z "$timezone" ]]; do
-                echo -e "${C1}Timezone (e.g., Asia/Kolkata):${NC}"
-                read -e -p "  > " timezone
-            done
-
-            # Loop 3: Email
-            while [[ -z "$email" ]]; do
-                echo -e "${C1}Email (Admin & Let's Encrypt):${NC}"
-                read -e -p "  > " email
-            done
-
-            # Loop 4: First Name
-            while [[ -z "$firstname" ]]; do
+                read -e fqdn
+                
+                echo -e "${C1}Timezone (e.g., UTC):${NC}"
+                read -e timezone
+                
+                echo -e "${C1}Email:${NC}"
+                read -e email
+                
                 echo -e "${C1}First Name:${NC}"
-                read -e -p "  > " firstname
-            done
-
-            # Loop 5: Last Name
-            while [[ -z "$lastname" ]]; do
+                read -e firstname
+                
                 echo -e "${C1}Last Name:${NC}"
-                read -e -p "  > " lastname
-            done
-
-            # Loop 6: Password
-            while [[ -z "$admin_pass" ]]; do
+                read -e lastname
+                
                 echo -e "${C1}Admin Password:${NC}"
-                read -e -p "  > " admin_pass
-            done
-            
-            # Generate DB Password silently
-            db_pass=$(openssl rand -base64 12)
-            
-            # CONFIRMATION DISPLAY
-            echo -e "\n${Y1}--- REVIEW DATA ---${NC}"
-            echo -e "Domain:   ${G1}$fqdn${NC}"
-            echo -e "Email:    ${G1}$email${NC}"
-            echo -e "Name:     ${G1}$firstname $lastname${NC}"
-            echo -e "Timezone: ${G1}$timezone${NC}"
-            echo -e "-------------------"
-            read -e -p "Press [Enter] to start installation..." dummy
+                read -e admin_pass
+                
+                # Check for empty inputs
+                if [[ -z "$fqdn" || -z "$email" ]]; then
+                    echo -e "${R1}Error: Domain and Email are required! Try again.${NC}"
+                    return
+                fi
 
-            echo -e "\n${G1}Injecting Configuration into Installer...${NC}"
-            
-            # --- EXECUTION PHASE ---
-            bash <(curl -s https://pterodactyl-installer.se) <<EOF
+                echo -e "\n${G1}Injecting Configuration...${NC}"
+                db_pass=$(openssl rand -base64 12)
+                
+                bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
 pterodactyl
@@ -146,6 +128,7 @@ y
 y
 y
 EOF
+            fi
             ;;
         4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Deleted.${NC}" ;;
     esac
@@ -177,7 +160,7 @@ backup_logic() {
     esac
 }
 
-# 5. Cloudflare (Smart Token)
+# 5. Cloudflare
 cf_logic() {
     case $1 in
         1) systemctl is-active cloudflared ;;
@@ -186,8 +169,9 @@ cf_logic() {
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             dpkg -i cf.deb && rm cf.deb
             
-            echo -e "\n${Y1}Paste Cloudflare Token OR Command:${NC}"
-            read -e -p "  > " raw_input
+            echo -e "\n${Y1}Paste Cloudflare Token:${NC}"
+            echo -ne "  > "
+            read raw_input
             
             token=$(echo "$raw_input" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$token" ] && token=$raw_input
@@ -199,7 +183,7 @@ cf_logic() {
     esac
 }
 
-# 6. Tailscale (Fixed UI)
+# 6. Tailscale
 ts_logic() {
     case $1 in
         1) tailscale status ;;
@@ -235,34 +219,44 @@ db_logic() {
     esac
 }
 
-# 9. Blueprint
+# 9. Blueprint & NEBULA STORE
 bp_logic() {
     case $1 in
-        2) bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh) ;;
+        1) [ -f "/usr/local/bin/blueprint" ] && echo -e "${G1}✔ Blueprint Active${NC}" || echo -e "${R1}✘ Not Installed${NC}" ;;
+        2) 
+            echo -e "\n${Y1}--- BLUEPRINT STORE ---${NC}"
+            echo -e "  ${C1}A)${NC} Install Blueprint Framework"
+            echo -e "  ${C1}B)${NC} Install NEBULA Theme (Official)"
+            echo -ne "  > "
+            read bp_choice
+            
+            if [[ "$bp_choice" == "A" || "$bp_choice" == "a" ]]; then
+                bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
+            elif [[ "$bp_choice" == "B" || "$bp_choice" == "b" ]]; then
+                echo -e "${G1}Installing Nebula Theme...${NC}"
+                # Installs Nebula using the Blueprint command
+                cd /var/www/pterodactyl
+                blueprint -install nebula
+            fi
+            ;;
+        3) blueprint -upgrade ;;
     esac
 }
 
-# 10. Themes
+# 10. Themes (Legacy)
 theme_logic() {
     case $1 in
-        2) echo -e "${C1}Theme URL:${NC}"; read -e -p "  > " url && bash <(curl -sL $url) ;;
+        2) echo -e "${C1}Theme URL:${NC}"; echo -ne "  > "; read url && bash <(curl -sL $url) ;;
     esac
 }
 
-# 11. GHOST COMBO (Validated)
+# 11. GHOST COMBO
 ghost_logic() {
     case $1 in
         2)
-            # Reset variables
-            fqdn=""; timezone=""; email=""; firstname=""; lastname=""; admin_pass=""; cf_token=""
-
-            while [[ -z "$fqdn" ]]; do echo -e "${C1}Domain:${NC}"; read -e -p "  > " fqdn; done
-            while [[ -z "$timezone" ]]; do echo -e "${C1}Timezone:${NC}"; read -e -p "  > " timezone; done
-            while [[ -z "$email" ]]; do echo -e "${C1}Email:${NC}"; read -e -p "  > " email; done
-            while [[ -z "$firstname" ]]; do echo -e "${C1}First Name:${NC}"; read -e -p "  > " firstname; done
-            while [[ -z "$lastname" ]]; do echo -e "${C1}Last Name:${NC}"; read -e -p "  > " lastname; done
-            while [[ -z "$admin_pass" ]]; do echo -e "${C1}Admin Password:${NC}"; read -e -p "  > " admin_pass; done
-            while [[ -z "$cf_token" ]]; do echo -e "${C1}CF Token:${NC}"; read -e -p "  > " cf_token; done
+            echo -e "${C1}Domain:${NC}"; read fqdn
+            echo -e "${C1}Email:${NC}"; read email
+            echo -e "${C1}CF Token:${NC}"; read cf_token
             
             clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$clean_token" ] && clean_token=$cf_token
@@ -277,13 +271,13 @@ ghost_logic() {
 panel
 pterodactyl
 $db_pass
-$timezone
+UTC
 $email
 $email
 admin
-$firstname
-$lastname
-$admin_pass
+Admin
+User
+$db_pass
 $fqdn
 y
 y
@@ -298,7 +292,7 @@ EOF
 # 12. SSL
 ssl_logic() {
     case $1 in
-        2) apt install certbot -y && echo -e "Domain:"; read -e -p "  > " d && certbot certonly --standalone -d $d ;;
+        2) apt install certbot -y && echo -e "Domain:"; echo -ne "  > "; read d && certbot certonly --standalone -d $d ;;
     esac
 }
 
@@ -327,7 +321,7 @@ log_logic() {
 # --- Main Console ---
 while true; do
     show_header
-    echo -e "  ${C1}[1]${NC} Panel Hub             ${C1}[9]${NC} Blueprint Engine"
+    echo -e "  ${C1}[1]${NC} Panel Hub             ${C1}[9]${NC} Blueprint & Nebula"
     echo -e "  ${C1}[2]${NC} Wings Hub             ${C1}[10]${NC} Theme Installer"
     echo -e "  ${C1}[3]${NC} Resource Optimizer    ${C1}[11]${NC} GHOST COMBO (Auto)"
     echo -e "  ${C1}[4]${NC} Automatic Backups     ${C1}[12]${NC} SSL Auto-Cert"
@@ -337,7 +331,8 @@ while true; do
     echo -e "  ${C1}[0]${NC} Exit Session"
     draw_sep
     echo -e "${G1}JAVIX_OS@ROOT:${NC}"
-    read -e -p "  > " choice
+    echo -ne "  > "
+    read choice
     
     case $choice in
         1) manage_hub "Panel" "panel_logic" ;;
