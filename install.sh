@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: CLOUDFLARE PATCHER${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: 502 GATEWAY FIXER${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -61,7 +61,7 @@ manage_hub() {
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (WITH POST-INSTALL PATCHER)
+# 1. Panel (FORCE HTTP MODE)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
@@ -91,10 +91,11 @@ panel_logic() {
                 return
             fi
 
-            echo -e "\n${G1}Injecting Cloudflare-Ready Config...${NC}"
+            echo -e "\n${G1}Injecting HTTP Config (Cloudflare Compatible)...${NC}"
             db_pass=$(openssl rand -base64 12)
             
-            # 1. RUN INSTALLER (HTTP MODE)
+            # --- INSTALLER (HTTP ONLY) ---
+            # We explicitly say 'n' to HTTPS so Nginx listens on Port 80
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
@@ -117,33 +118,71 @@ y
 y
 EOF
 
-            # 2. RUN JAVIX PATCHER (FIX 502 ERROR)
-            echo -e "\n${Y1}--- RUNNING JAVIX CLOUDFLARE PATCHER ---${NC}"
-            echo -e "${C1}Step 1: Configuring Trusted Proxies...${NC}"
-            
+            # --- JAVIX PATCHER ---
+            echo -e "\n${Y1}--- APPLYING 502 GATEWAY FIX ---${NC}"
             cd /var/www/pterodactyl || return
             
-            # Enable TRUSTED_PROXIES for Cloudflare
-            if grep -q "TRUSTED_PROXIES=" .env; then
-                sed -i 's/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=*/g' .env
-            else
-                echo "TRUSTED_PROXIES=*" >> .env
-            fi
+            # 1. Trust Cloudflare Proxies
+            sed -i 's/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=*/g' .env || echo "TRUSTED_PROXIES=*" >> .env
             
-            # Force APP_URL to HTTPS
+            # 2. Force HTTPS Links (User sees Lock icon)
             sed -i 's/^APP_URL=http:/APP_URL=https:/g' .env
             
-            echo -e "${C1}Step 2: Clearing Cache & Restarting Services...${NC}"
+            # 3. Nginx Configuration Fix (Force Port 80)
+            echo -e "${C1}Rebuilding Nginx Config for Port 80...${NC}"
+            rm -f /etc/nginx/sites-enabled/pterodactyl.conf
+            cat <<NGINX > /etc/nginx/sites-available/pterodactyl.conf
+server {
+    listen 80;
+    server_name $fqdn;
+    root /var/www/pterodactyl/public;
+    index index.php;
+
+    access_log /var/log/nginx/pterodactyl.access.log;
+    error_log  /var/log/nginx/pterodactyl.error.log error;
+
+    client_max_body_size 100m;
+    client_body_timeout 120s;
+
+    sendfile off;
+
+    location / {
+        try_files \$uri \$uri/ /index.php?\$query_string;
+    }
+
+    location ~ \.php$ {
+        fastcgi_split_path_info ^(.+\.php)(/.+)$;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+        fastcgi_index index.php;
+        include fastcgi_params;
+        fastcgi_param PHP_VALUE "upload_max_filesize = 100M \n post_max_size = 100M";
+        fastcgi_param SCRIPT_FILENAME \$document_root\$fastcgi_script_name;
+        fastcgi_param HTTP_PROXY "";
+        fastcgi_intercept_errors off;
+        fastcgi_buffer_size 16k;
+        fastcgi_buffers 4 16k;
+        fastcgi_connect_timeout 300;
+        fastcgi_send_timeout 300;
+        fastcgi_read_timeout 300;
+    }
+
+    location ~ /\.ht {
+        deny all;
+    }
+}
+NGINX
+            
+            ln -s /etc/nginx/sites-available/pterodactyl.conf /etc/nginx/sites-enabled/pterodactyl.conf 2>/dev/null
+            
+            # 4. Restart Everything
             php artisan config:clear
             php artisan cache:clear
             chown -R www-data:www-data /var/www/pterodactyl/*
-            
-            # Restart Nginx & PHP
             systemctl restart nginx
-            systemctl restart php8.3-fpm 2>/dev/null || systemctl restart php8.2-fpm 2>/dev/null || systemctl restart php8.1-fpm
+            systemctl restart php8.3-fpm
             
-            echo -e "${G1}✔ PATCH APPLIED!${NC}"
-            echo -e "${Y1}IMPORTANT: Set Cloudflare SSL/TLS to 'FLEXIBLE' mode now!${NC}"
+            echo -e "${G1}✔ FIX APPLIED!${NC}"
+            echo -e "${Y1}REMINDER: Set Cloudflare Tunnel Service to 'HTTP' and 'localhost:80'${NC}"
             ;;
         4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Deleted.${NC}" ;;
     esac
