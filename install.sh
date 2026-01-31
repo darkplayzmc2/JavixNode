@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: FINAL STABLE EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: TAILSCALE FIXED EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -52,7 +52,7 @@ manage_hub() {
     done
 }
 
-# --- ALL 15 LOGIC MODULES ---
+# --- LOGIC MODULES ---
 
 # 1. Panel
 panel_logic() {
@@ -118,11 +118,19 @@ cf_logic() {
     esac
 }
 
-# 6. Tailscale
+# 6. Tailscale (FIXED LINK DISPLAY)
 ts_logic() {
     case $1 in
         1) tailscale status ;;
-        2) curl -fsSL https://tailscale.com/install.sh | sh && tailscale up ;;
+        2) 
+            echo -e "${C1}Downloading Tailscale packages...${NC}"
+            curl -fsSL https://tailscale.com/install.sh | sh
+            echo -e "\n${Y1}--- AUTHENTICATION REQUIRED ---${NC}"
+            echo -e "${G1}The system will now generate a login link.${NC}"
+            echo -e "${G1}Copy the link below and paste it into your browser to connect.${NC}"
+            echo -e "${Y1}-------------------------------${NC}\n"
+            sudo tailscale up
+            ;;
         4) tailscale down && apt remove tailscale -y ;;
     esac
 }
@@ -158,7 +166,7 @@ theme_logic() {
     esac
 }
 
-# 11. GHOST COMBO (Automated)
+# 11. GHOST COMBO
 ghost_logic() {
     case $1 in
         2)
@@ -217,7 +225,7 @@ log_logic() {
     esac
 }
 
-# --- Main Console (15 Hard-Mapped Options) ---
+# --- Main Console ---
 while true; do
     show_header
     echo -e "  ${C1}[1]${NC} Panel Hub             ${C1}[9]${NC} Blueprint Engine"
