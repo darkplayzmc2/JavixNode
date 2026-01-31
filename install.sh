@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: SMART TOKEN EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: UI FIXED EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -27,26 +27,33 @@ show_header() {
     draw_sep
 }
 
-# --- Core Management Hub Wrapper ---
+# --- Core Management Hub Wrapper (FIXED UI) ---
 manage_hub() {
     local tool_name=$1
     local logic_func=$2
     while true; do
-        echo -e "\n  ${Y1}HUB: $tool_name${NC}"
+        # --- UI FIX: Clear screen and redraw header every time ---
+        clear
+        draw_sep
+        echo -e "          ${Y1}JAVIX HUB: ${tool_name^^}${NC}"
+        draw_sep
         echo -e "  ${C1}1)${NC} Check Status"
         echo -e "  ${C1}2)${NC} Install/Execute"
         echo -e "  ${C1}3)${NC} Repair/Update"
         echo -e "  ${C1}4)${NC} Uninstall/Remove"
         echo -e "  ${C1}5)${NC} Back to Main Console"
         echo -e "  ${R1}6) Global Exit${NC}"
-        echo -ne "\n  ${G1}Select Action > ${NC}"
+        draw_sep
+        echo -ne "  ${G1}Select Action > ${NC}"
         read -r sub_choice
 
+        echo -e "" # Spacer
         case $sub_choice in
             5) return ;;
             6) echo -e "${R1}Exiting...${NC}"; exit 0 ;;
             *) $logic_func "$sub_choice" ;;
         esac
+        
         echo -ne "\n${Y1}Task Done. Press [Enter] to refresh HUB...${NC}"
         read -r
     done
@@ -57,7 +64,7 @@ manage_hub() {
 # 1. Panel
 panel_logic() {
     case $1 in
-        1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}Installed${NC}" || echo -e "${R1}Not Found${NC}" ;;
+        1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
             echo -ne "${C1}Domain: ${NC}" && read fqdn
             echo -ne "${C1}Email: ${NC}" && read email
@@ -74,14 +81,14 @@ y
 y
 EOF
             ;;
-        4) rm -rf /var/www/pterodactyl ;;
+        4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Deleted.${NC}" ;;
     esac
 }
 
 # 2. Wings
 wings_logic() {
     case $1 in
-        1) systemctl is-active wings && echo -e "${G1}Active${NC}" || echo -e "${R1}Inactive${NC}" ;;
+        1) systemctl is-active wings && echo -e "${G1}✔ Wings Active${NC}" || echo -e "${R1}✘ Wings Inactive${NC}" ;;
         2) bash <(curl -s https://pterodactyl-installer.se) --install-wings ;;
         4) systemctl stop wings && rm -rf /etc/pterodactyl /usr/local/bin/wings ;;
     esac
@@ -91,7 +98,7 @@ wings_logic() {
 optimizer_logic() {
     case $1 in
         1) free -h ;;
-        2) sync; echo 3 > /proc/sys/vm/drop_caches; echo -e "${G1}RAM Purged.${NC}" ;;
+        2) sync; echo 3 > /proc/sys/vm/drop_caches; echo -e "${G1}✔ RAM Purged.${NC}" ;;
     esac
 }
 
@@ -104,7 +111,7 @@ backup_logic() {
     esac
 }
 
-# 5. Cloudflare (SMART TOKEN PARSER)
+# 5. Cloudflare (Smart Token)
 cf_logic() {
     case $1 in
         1) systemctl is-active cloudflared ;;
@@ -114,34 +121,26 @@ cf_logic() {
             dpkg -i cf.deb && rm cf.deb
             
             echo -e "\n${Y1}Paste Cloudflare Token OR Command:${NC}"
-            echo -e "${G1}(You can paste the raw token OR the full 'cloudflared tunnel run' command)${NC}"
             echo -ne "> "
             read -r raw_input
             
-            # Smart Regex: Find the token starting with 'ey' inside whatever junk is pasted
             token=$(echo "$raw_input" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
+            [ -z "$token" ] && token=$raw_input
             
-            if [ -z "$token" ]; then
-                # Fallback if regex fails
-                token=$raw_input
-            fi
-            
-            echo -e "${C1}Token Extracted. Installing Service...${NC}"
-            # Force service install (Background Mode) instead of tunnel run (Foreground Mode)
+            echo -e "${C1}Installing Service...${NC}"
             sudo cloudflared service install "$token"
             ;;
         4) cloudflared service uninstall ;;
     esac
 }
 
-# 6. Tailscale
+# 6. Tailscale (Fixed UI)
 ts_logic() {
     case $1 in
         1) tailscale status ;;
         2) 
             echo -e "${C1}Downloading Tailscale packages...${NC}"
             curl -fsSL https://tailscale.com/install.sh | sh
-            
             if [ -f "/usr/bin/tailscale" ]; then TS_BIN="/usr/bin/tailscale"; else TS_BIN="tailscale"; fi
             
             echo -e "\n${Y1}--- AUTHENTICATION REQUIRED ---${NC}"
@@ -192,7 +191,6 @@ ghost_logic() {
             echo -ne "${C1}Domain: ${NC}" && read fqdn
             echo -ne "${C1}Email: ${NC}" && read email
             echo -ne "${C1}CF Token: ${NC}" && read cf_token
-            # Smart Parse Token for Ghost Combo too
             clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$clean_token" ] && clean_token=$cf_token
 
