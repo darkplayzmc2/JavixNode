@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: TAILSCALE FIXED EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: SMART TOKEN EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -104,21 +104,37 @@ backup_logic() {
     esac
 }
 
-# 5. Cloudflare
+# 5. Cloudflare (SMART TOKEN PARSER)
 cf_logic() {
     case $1 in
         1) systemctl is-active cloudflared ;;
         2) 
+            echo -e "${C1}Downloading Cloudflare binaries...${NC}"
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             dpkg -i cf.deb && rm cf.deb
-            echo -ne "${C1}Token: ${NC}" && read token
-            cloudflared service install "$token"
+            
+            echo -e "\n${Y1}Paste Cloudflare Token OR Command:${NC}"
+            echo -e "${G1}(You can paste the raw token OR the full 'cloudflared tunnel run' command)${NC}"
+            echo -ne "> "
+            read -r raw_input
+            
+            # Smart Regex: Find the token starting with 'ey' inside whatever junk is pasted
+            token=$(echo "$raw_input" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
+            
+            if [ -z "$token" ]; then
+                # Fallback if regex fails
+                token=$raw_input
+            fi
+            
+            echo -e "${C1}Token Extracted. Installing Service...${NC}"
+            # Force service install (Background Mode) instead of tunnel run (Foreground Mode)
+            sudo cloudflared service install "$token"
             ;;
         4) cloudflared service uninstall ;;
     esac
 }
 
-# 6. Tailscale (FIXED & FORCED LINK)
+# 6. Tailscale
 ts_logic() {
     case $1 in
         1) tailscale status ;;
@@ -126,20 +142,12 @@ ts_logic() {
             echo -e "${C1}Downloading Tailscale packages...${NC}"
             curl -fsSL https://tailscale.com/install.sh | sh
             
-            # Locate binary to ensure it runs
-            if [ -f "/usr/bin/tailscale" ]; then
-                TS_BIN="/usr/bin/tailscale"
-            else
-                TS_BIN="tailscale"
-            fi
+            if [ -f "/usr/bin/tailscale" ]; then TS_BIN="/usr/bin/tailscale"; else TS_BIN="tailscale"; fi
             
             echo -e "\n${Y1}--- AUTHENTICATION REQUIRED ---${NC}"
-            echo -e "${G1}System will now attempt to connect.${NC}"
             echo -e "${G1}If a link appears below, COPY IT to your browser.${NC}"
             echo -e "${Y1}-------------------------------${NC}\n"
             sleep 2
-            
-            # Run in foreground to force link display
             sudo $TS_BIN up
             ;;
         4) tailscale down && apt remove tailscale -y ;;
@@ -184,11 +192,14 @@ ghost_logic() {
             echo -ne "${C1}Domain: ${NC}" && read fqdn
             echo -ne "${C1}Email: ${NC}" && read email
             echo -ne "${C1}CF Token: ${NC}" && read cf_token
-            # 1. CF
+            # Smart Parse Token for Ghost Combo too
+            clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
+            [ -z "$clean_token" ] && clean_token=$cf_token
+
             curl -L https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb -o cf.deb
             dpkg -i cf.deb && rm cf.deb
-            cloudflared service install "$cf_token"
-            # 2. Panel
+            cloudflared service install "$clean_token"
+
             bash <(curl -s https://pterodactyl-installer.se) --install-panel <<EOF
 1
 $fqdn
@@ -201,7 +212,6 @@ y
 y
 y
 EOF
-            # 3. Blueprint
             bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
             ;;
     esac
