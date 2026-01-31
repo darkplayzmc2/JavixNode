@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: CLOUDFLARE FIX EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: CLOUDFLARE PATCHER${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -61,57 +61,41 @@ manage_hub() {
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (CLOUDFLARE COMPATIBLE CONFIG)
+# 1. Panel (WITH POST-INSTALL PATCHER)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
-            echo -e "\n${Y1}--- INSTALLATION MODE ---${NC}"
-            echo -e "  ${C1}A)${NC} Automatic (Cloudflare Compatible)"
-            echo -e "  ${C1}B)${NC} Manual / Interactive"
-            echo -ne "  > "
-            read mode
+            echo -e "\n${Y1}--- CONFIGURATION ---${NC}"
+            
+            echo -e "${C1}Domain (FQDN):${NC}"
+            read -e fqdn
+            
+            echo -e "${C1}Timezone (e.g., Asia/Kolkata):${NC}"
+            read -e timezone
+            
+            echo -e "${C1}Email:${NC}"
+            read -e email
+            
+            echo -e "${C1}First Name:${NC}"
+            read -e firstname
+            
+            echo -e "${C1}Last Name:${NC}"
+            read -e lastname
+            
+            echo -e "${C1}Admin Password:${NC}"
+            read -e admin_pass
+            
+            if [[ -z "$fqdn" || -z "$email" ]]; then
+                echo -e "${R1}Error: Domain and Email are required! Try again.${NC}"
+                return
+            fi
 
-            if [[ "$mode" == "B" || "$mode" == "b" ]]; then
-                # MANUAL MODE
-                echo -e "\n${G1}Starting Manual Installer...${NC}"
-                bash <(curl -s https://pterodactyl-installer.se)
-            else
-                # AUTO MODE (CLOUDFLARE FIX)
-                echo -e "\n${Y1}--- CONFIGURATION ---${NC}"
-                
-                echo -e "${C1}Domain (FQDN):${NC}"
-                read -e fqdn
-                
-                echo -e "${C1}Timezone (e.g., Asia/Kolkata):${NC}"
-                read -e timezone
-                
-                echo -e "${C1}Email:${NC}"
-                read -e email
-                
-                echo -e "${C1}First Name:${NC}"
-                read -e firstname
-                
-                echo -e "${C1}Last Name:${NC}"
-                read -e lastname
-                
-                echo -e "${C1}Admin Password:${NC}"
-                read -e admin_pass
-                
-                if [[ -z "$fqdn" || -z "$email" ]]; then
-                    echo -e "${R1}Error: Domain and Email are required! Try again.${NC}"
-                    return
-                fi
-
-                echo -e "\n${G1}Injecting Cloudflare-Ready Config...${NC}"
-                db_pass=$(openssl rand -base64 12)
-                
-                # THE FIX: 
-                # 1. Sets 'n' for Auto-Let's Encrypt (Prevents 502 Bad Gateway)
-                # 2. Sets 'y' for "Proceed anyways" (Ignores DNS mismatch)
-                # 3. Sets 'y' for "Assume SSL" (Required for Cloudflare)
-                
-                bash <(curl -s https://pterodactyl-installer.se) <<EOF
+            echo -e "\n${G1}Injecting Cloudflare-Ready Config...${NC}"
+            db_pass=$(openssl rand -base64 12)
+            
+            # 1. RUN INSTALLER (HTTP MODE)
+            bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
 pterodactyl
@@ -132,7 +116,34 @@ y
 y
 y
 EOF
+
+            # 2. RUN JAVIX PATCHER (FIX 502 ERROR)
+            echo -e "\n${Y1}--- RUNNING JAVIX CLOUDFLARE PATCHER ---${NC}"
+            echo -e "${C1}Step 1: Configuring Trusted Proxies...${NC}"
+            
+            cd /var/www/pterodactyl || return
+            
+            # Enable TRUSTED_PROXIES for Cloudflare
+            if grep -q "TRUSTED_PROXIES=" .env; then
+                sed -i 's/^TRUSTED_PROXIES=.*/TRUSTED_PROXIES=*/g' .env
+            else
+                echo "TRUSTED_PROXIES=*" >> .env
             fi
+            
+            # Force APP_URL to HTTPS
+            sed -i 's/^APP_URL=http:/APP_URL=https:/g' .env
+            
+            echo -e "${C1}Step 2: Clearing Cache & Restarting Services...${NC}"
+            php artisan config:clear
+            php artisan cache:clear
+            chown -R www-data:www-data /var/www/pterodactyl/*
+            
+            # Restart Nginx & PHP
+            systemctl restart nginx
+            systemctl restart php8.3-fpm 2>/dev/null || systemctl restart php8.2-fpm 2>/dev/null || systemctl restart php8.1-fpm
+            
+            echo -e "${G1}✔ PATCH APPLIED!${NC}"
+            echo -e "${Y1}IMPORTANT: Set Cloudflare SSL/TLS to 'FLEXIBLE' mode now!${NC}"
             ;;
         4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Deleted.${NC}" ;;
     esac
@@ -269,7 +280,6 @@ ghost_logic() {
             cloudflared service install "$clean_token"
 
             db_pass=$(openssl rand -base64 12)
-            # Ghost Combo also updated for Cloudflare
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
