@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: VALIDATION EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: FINAL STABLE EDITION${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -43,10 +43,11 @@ manage_hub() {
         echo -e "  ${C1}5)${NC} Back to Main Console"
         echo -e "  ${R1}6) Global Exit${NC}"
         draw_sep
-        echo -ne "  ${G1}Select Action > ${NC}"
-        read -e sub_choice
+        
+        # Two-Line Input for Menu
+        echo -e "${G1}Select Action:${NC}"
+        read -e -p "  > " sub_choice
 
-        echo -e ""
         case $sub_choice in
             5) return ;;
             6) echo -e "${R1}Exiting...${NC}"; exit 0 ;;
@@ -60,43 +61,56 @@ manage_hub() {
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (VALIDATED INPUTS)
+# 1. Panel (TWO-LINE INPUT FIX)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
-            # --- DATA COLLECTION PHASE (With Validation) ---
+            # --- DATA COLLECTION PHASE ---
             echo -e "${Y1}--- CONFIGURATION REQUIRED ---${NC}"
             
-            # Loop until valid input is received
+            # Reset variables to prevent loops
+            fqdn=""
+            timezone=""
+            email=""
+            firstname=""
+            lastname=""
+            admin_pass=""
+
+            # Loop 1: FQDN
             while [[ -z "$fqdn" ]]; do
-                echo -ne "${C1}Domain (FQDN): ${NC}"
-                read -e fqdn
+                echo -e "${C1}Domain (FQDN):${NC}"
+                read -e -p "  > " fqdn
             done
             
+            # Loop 2: Timezone
             while [[ -z "$timezone" ]]; do
-                echo -ne "${C1}Timezone (e.g., Asia/Kolkata): ${NC}"
-                read -e timezone
+                echo -e "${C1}Timezone (e.g., Asia/Kolkata):${NC}"
+                read -e -p "  > " timezone
             done
 
+            # Loop 3: Email
             while [[ -z "$email" ]]; do
-                echo -ne "${C1}Email (Admin & Let's Encrypt): ${NC}"
-                read -e email
+                echo -e "${C1}Email (Admin & Let's Encrypt):${NC}"
+                read -e -p "  > " email
             done
 
+            # Loop 4: First Name
             while [[ -z "$firstname" ]]; do
-                echo -ne "${C1}First Name: ${NC}"
-                read -e firstname
+                echo -e "${C1}First Name:${NC}"
+                read -e -p "  > " firstname
             done
 
+            # Loop 5: Last Name
             while [[ -z "$lastname" ]]; do
-                echo -ne "${C1}Last Name: ${NC}"
-                read -e lastname
+                echo -e "${C1}Last Name:${NC}"
+                read -e -p "  > " lastname
             done
 
+            # Loop 6: Password
             while [[ -z "$admin_pass" ]]; do
-                echo -ne "${C1}Admin Password: ${NC}"
-                read -e admin_pass
+                echo -e "${C1}Admin Password:${NC}"
+                read -e -p "  > " admin_pass
             done
             
             # Generate DB Password silently
@@ -104,17 +118,16 @@ panel_logic() {
             
             # CONFIRMATION DISPLAY
             echo -e "\n${Y1}--- REVIEW DATA ---${NC}"
-            echo -e "Domain: ${G1}$fqdn${NC}"
-            echo -e "Email: ${G1}$email${NC}"
-            echo -e "Name: ${G1}$firstname $lastname${NC}"
+            echo -e "Domain:   ${G1}$fqdn${NC}"
+            echo -e "Email:    ${G1}$email${NC}"
+            echo -e "Name:     ${G1}$firstname $lastname${NC}"
             echo -e "Timezone: ${G1}$timezone${NC}"
             echo -e "-------------------"
-            read -p "Press [Enter] to start installation..."
+            read -e -p "Press [Enter] to start installation..." dummy
 
             echo -e "\n${G1}Injecting Configuration into Installer...${NC}"
             
             # --- EXECUTION PHASE ---
-            # Added the final 'y' for the "Initial configuration completed" prompt
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
@@ -164,7 +177,7 @@ backup_logic() {
     esac
 }
 
-# 5. Cloudflare
+# 5. Cloudflare (Smart Token)
 cf_logic() {
     case $1 in
         1) systemctl is-active cloudflared ;;
@@ -174,8 +187,7 @@ cf_logic() {
             dpkg -i cf.deb && rm cf.deb
             
             echo -e "\n${Y1}Paste Cloudflare Token OR Command:${NC}"
-            echo -ne "> "
-            read -e raw_input
+            read -e -p "  > " raw_input
             
             token=$(echo "$raw_input" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$token" ] && token=$raw_input
@@ -187,7 +199,7 @@ cf_logic() {
     esac
 }
 
-# 6. Tailscale
+# 6. Tailscale (Fixed UI)
 ts_logic() {
     case $1 in
         1) tailscale status ;;
@@ -233,7 +245,7 @@ bp_logic() {
 # 10. Themes
 theme_logic() {
     case $1 in
-        2) echo -ne "${C1}Theme URL: ${NC}" && read -e url && bash <(curl -sL $url) ;;
+        2) echo -e "${C1}Theme URL:${NC}"; read -e -p "  > " url && bash <(curl -sL $url) ;;
     esac
 }
 
@@ -241,13 +253,16 @@ theme_logic() {
 ghost_logic() {
     case $1 in
         2)
-            while [[ -z "$fqdn" ]]; do echo -ne "${C1}Domain: ${NC}"; read -e fqdn; done
-            while [[ -z "$timezone" ]]; do echo -ne "${C1}Timezone: ${NC}"; read -e timezone; done
-            while [[ -z "$email" ]]; do echo -ne "${C1}Email: ${NC}"; read -e email; done
-            while [[ -z "$firstname" ]]; do echo -ne "${C1}First Name: ${NC}"; read -e firstname; done
-            while [[ -z "$lastname" ]]; do echo -ne "${C1}Last Name: ${NC}"; read -e lastname; done
-            while [[ -z "$admin_pass" ]]; do echo -ne "${C1}Admin Password: ${NC}"; read -e admin_pass; done
-            while [[ -z "$cf_token" ]]; do echo -ne "${C1}CF Token: ${NC}"; read -e cf_token; done
+            # Reset variables
+            fqdn=""; timezone=""; email=""; firstname=""; lastname=""; admin_pass=""; cf_token=""
+
+            while [[ -z "$fqdn" ]]; do echo -e "${C1}Domain:${NC}"; read -e -p "  > " fqdn; done
+            while [[ -z "$timezone" ]]; do echo -e "${C1}Timezone:${NC}"; read -e -p "  > " timezone; done
+            while [[ -z "$email" ]]; do echo -e "${C1}Email:${NC}"; read -e -p "  > " email; done
+            while [[ -z "$firstname" ]]; do echo -e "${C1}First Name:${NC}"; read -e -p "  > " firstname; done
+            while [[ -z "$lastname" ]]; do echo -e "${C1}Last Name:${NC}"; read -e -p "  > " lastname; done
+            while [[ -z "$admin_pass" ]]; do echo -e "${C1}Admin Password:${NC}"; read -e -p "  > " admin_pass; done
+            while [[ -z "$cf_token" ]]; do echo -e "${C1}CF Token:${NC}"; read -e -p "  > " cf_token; done
             
             clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$clean_token" ] && clean_token=$cf_token
@@ -283,7 +298,7 @@ EOF
 # 12. SSL
 ssl_logic() {
     case $1 in
-        2) apt install certbot -y && echo -ne "Domain: " && read -e d && certbot certonly --standalone -d $d ;;
+        2) apt install certbot -y && echo -e "Domain:"; read -e -p "  > " d && certbot certonly --standalone -d $d ;;
     esac
 }
 
@@ -321,9 +336,9 @@ while true; do
     echo -e "  ${C1}[7]${NC} Security Hardening    ${C1}[15]${NC} Live System Logs"
     echo -e "  ${C1}[0]${NC} Exit Session"
     draw_sep
-    echo -ne "  ${G1}JAVIX_OS@ROOT:~$ ${NC}"
+    echo -e "${G1}JAVIX_OS@ROOT:${NC}"
+    read -e -p "  > " choice
     
-    read -e choice
     case $choice in
         1) manage_hub "Panel" "panel_logic" ;;
         2) manage_hub "Wings" "wings_logic" ;;
