@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: CUSTOM INPUTS EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: UI GLITCH FIXED${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -44,7 +44,7 @@ manage_hub() {
         echo -e "  ${R1}6) Global Exit${NC}"
         draw_sep
         echo -ne "  ${G1}Select Action > ${NC}"
-        read -r sub_choice
+        read -e sub_choice  # <--- FIXED: Added -e
 
         echo -e ""
         case $sub_choice in
@@ -54,13 +54,13 @@ manage_hub() {
         esac
         
         echo -ne "\n${Y1}Task Done. Press [Enter] to clean screen & refresh HUB...${NC}"
-        read -r
+        read -e dummy_input # <--- FIXED: Added -e
     done
 }
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (UPDATED WITH ALL REQUESTED INPUTS)
+# 1. Panel (FIXED BACKSPACE GLITCH)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
@@ -68,55 +68,40 @@ panel_logic() {
             # --- DATA COLLECTION PHASE ---
             echo -e "${Y1}--- CONFIGURATION REQUIRED ---${NC}"
             
+            # FIXED: Added '-e' to ALL read commands to fix backspace glitch
             echo -ne "${C1}Domain (FQDN): ${NC}" 
-            read fqdn
+            read -e fqdn
             echo -e ""
 
             echo -ne "${C1}Timezone (e.g., UTC, Asia/Kolkata): ${NC}" 
-            read timezone
+            read -e timezone
             echo -e ""
 
             echo -ne "${C1}Email (for Let's Encrypt): ${NC}" 
-            read le_email
+            read -e le_email
             echo -e ""
 
             echo -ne "${C1}Admin Email (Login): ${NC}" 
-            read admin_email
+            read -e admin_email
             echo -e ""
 
             echo -ne "${C1}First Name: ${NC}" 
-            read firstname
+            read -e firstname
             echo -e ""
 
             echo -ne "${C1}Last Name: ${NC}" 
-            read lastname
+            read -e lastname
             echo -e ""
 
             echo -ne "${C1}Admin Password: ${NC}" 
-            read admin_pass
+            read -e admin_pass
             
             # Generate DB Password silently
             db_pass=$(openssl rand -base64 12)
             
             echo -e "\n${G1}Injecting Configuration into Installer...${NC}"
             
-            # --- EXECUTION PHASE (Corrected Order) ---
-            # 1. Option 0 (Install Panel)
-            # 2. Database Name (panel)
-            # 3. Database User (pterodactyl)
-            # 4. Database Password (generated)
-            # 5. Timezone (User Input)
-            # 6. Let's Encrypt Email (User Input)
-            # 7. Admin Email (User Input)
-            # 8. Admin Username (Hardcoded to 'admin' to save time)
-            # 9. First Name (User Input)
-            # 10. Last Name (User Input)
-            # 11. Admin Password (User Input)
-            # 12. FQDN (User Input)
-            # 13. Firewall (y)
-            # 14. HTTPS (y)
-            # 15. CheckIP (y)
-
+            # --- EXECUTION PHASE ---
             bash <(curl -s https://pterodactyl-installer.se) <<EOF
 0
 panel
@@ -165,7 +150,7 @@ backup_logic() {
     esac
 }
 
-# 5. Cloudflare (Smart Token)
+# 5. Cloudflare (Smart Token + Fixed Input)
 cf_logic() {
     case $1 in
         1) systemctl is-active cloudflared ;;
@@ -176,7 +161,7 @@ cf_logic() {
             
             echo -e "\n${Y1}Paste Cloudflare Token OR Command:${NC}"
             echo -ne "> "
-            read -r raw_input
+            read -e raw_input # <--- FIXED
             
             token=$(echo "$raw_input" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$token" ] && token=$raw_input
@@ -188,7 +173,7 @@ cf_logic() {
     esac
 }
 
-# 6. Tailscale (Fixed UI)
+# 6. Tailscale (Fixed Input)
 ts_logic() {
     case $1 in
         1) tailscale status ;;
@@ -234,34 +219,34 @@ bp_logic() {
 # 10. Themes
 theme_logic() {
     case $1 in
-        2) echo -ne "${C1}Theme URL: ${NC}" && read url && bash <(curl -sL $url) ;;
+        2) echo -ne "${C1}Theme URL: ${NC}" && read -e url && bash <(curl -sL $url) ;; # <--- FIXED
     esac
 }
 
-# 11. GHOST COMBO (Updated with New Inputs)
+# 11. GHOST COMBO (Fixed Input)
 ghost_logic() {
     case $1 in
         2)
             echo -ne "${C1}Domain: ${NC}" 
-            read fqdn
+            read -e fqdn # <--- FIXED
             echo -e ""
             echo -ne "${C1}Timezone: ${NC}" 
-            read timezone
+            read -e timezone # <--- FIXED
             echo -e ""
             echo -ne "${C1}Admin Email: ${NC}" 
-            read admin_email
+            read -e admin_email # <--- FIXED
             echo -e ""
             echo -ne "${C1}First Name: ${NC}" 
-            read firstname
+            read -e firstname # <--- FIXED
             echo -e ""
             echo -ne "${C1}Last Name: ${NC}" 
-            read lastname
+            read -e lastname # <--- FIXED
             echo -e ""
             echo -ne "${C1}Admin Password: ${NC}" 
-            read admin_pass
+            read -e admin_pass # <--- FIXED
             echo -e ""
             echo -ne "${C1}CF Token: ${NC}" 
-            read cf_token
+            read -e cf_token # <--- FIXED
             
             clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$clean_token" ] && clean_token=$cf_token
@@ -297,7 +282,7 @@ EOF
 # 12. SSL
 ssl_logic() {
     case $1 in
-        2) apt install certbot -y && echo -ne "Domain: " && read d && certbot certonly --standalone -d $d ;;
+        2) apt install certbot -y && echo -ne "Domain: " && read -e d && certbot certonly --standalone -d $d ;; # <--- FIXED
     esac
 }
 
@@ -337,7 +322,7 @@ while true; do
     draw_sep
     echo -ne "  ${G1}JAVIX_OS@ROOT:~$ ${NC}"
     
-    read -r choice
+    read -e choice # <--- FIXED
     case $choice in
         1) manage_hub "Panel" "panel_logic" ;;
         2) manage_hub "Wings" "wings_logic" ;;
