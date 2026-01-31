@@ -16,7 +16,7 @@ draw_sep() {
 show_header() {
     clear
     draw_sep
-    echo -e "          ${Y1}🚀 JAVIX PRO: PANEL FIX EDITION${NC}"
+    echo -e "          ${Y1}🚀 JAVIX PRO: HYBRID INSTALLER${NC}"
     echo -e "          ${C1}developed by sk mohsin pasha${NC}"
     draw_sep
     echo -e "${Y1}     ██╗ █████╗ ██╗   ██╗██╗██╗  ██╗███╗   ██╗ ██████╗ ██████╗"
@@ -60,50 +60,29 @@ manage_hub() {
 
 # --- LOGIC MODULES ---
 
-# 1. Panel (FIXED AUTOMATION INPUTS)
+# 1. Panel (THE NEW JAVIX WAY)
 panel_logic() {
     case $1 in
         1) [ -d "/var/www/pterodactyl" ] && echo -e "${G1}✔ Panel Installed${NC}" || echo -e "${R1}✘ Panel Not Found${NC}" ;;
         2) 
-            echo -ne "${C1}Domain (FQDN): ${NC}" 
-            read fqdn
+            echo -e "${Y1}--- JAVIX HYBRID INSTALLER ---${NC}"
+            echo -e "${C1}Step 1: Pre-installing dependencies to prevent errors...${NC}"
+            
+            # Javix Engine: Pre-install core tools
+            apt update -q
+            apt install -y curl tar unzip git mariadb-server certbot
+            
+            echo -e "${G1}✔ Dependencies Ready.${NC}"
+            echo -e "${C1}Step 2: Launching Panel Installer Interface.${NC}"
+            echo -e "${Y1}⚠  INSTRUCTIONS:${NC}"
+            echo -e "   1. When asked 0-6, type ${G1}0${NC} and press Enter."
+            echo -e "   2. Follow the prompts manually."
+            echo -e "   3. This ensures it works on your OS (Debian 13).${NC}"
             echo -e ""
-            echo -ne "${C1}Email: ${NC}" 
-            read email
+            read -p "Press [Enter] to start..."
             
-            # Generate a random password for the database
-            db_pass=$(openssl rand -base64 12)
-            
-            echo -e "\n${G1}initializing Javix Autopilot for Pterodactyl...${NC}"
-            
-            # THE FIX: Explicitly send '0' first to select Panel, then feed the specific answers.
-            # 0 = Select Panel Install
-            # y = Database Config
-            # $db_pass = DB Password
-            # UTC = Timezone
-            # $email = Email for User
-            # $email = Email for Admin
-            # Admin = First Name
-            # User = Last Name
-            # $fqdn = FQDN
-            # y = UFW
-            # y = Let's Encrypt
-            # y = CheckIP Service Agreement (This failed before)
-            
-            bash <(curl -s https://pterodactyl-installer.se) <<EOF
-0
-y
-$db_pass
-UTC
-$email
-$email
-Admin
-User
-$fqdn
-y
-y
-y
-EOF
+            # Launch Interactive Mode (No automation flags to break it)
+            bash <(curl -s https://pterodactyl-installer.se)
             ;;
         4) rm -rf /var/www/pterodactyl && echo -e "${R1}Panel Deleted.${NC}" ;;
     esac
@@ -113,7 +92,10 @@ EOF
 wings_logic() {
     case $1 in
         1) systemctl is-active wings && echo -e "${G1}✔ Wings Active${NC}" || echo -e "${R1}✘ Wings Inactive${NC}" ;;
-        2) bash <(curl -s https://pterodactyl-installer.se) --install-wings ;;
+        2) 
+            echo -e "${C1}Starting Wings Installer...${NC}"
+            bash <(curl -s https://pterodactyl-installer.se) --install-wings 
+            ;;
         4) systemctl stop wings && rm -rf /etc/pterodactyl /usr/local/bin/wings ;;
     esac
 }
@@ -208,19 +190,14 @@ theme_logic() {
     esac
 }
 
-# 11. GHOST COMBO (Fixed Logic)
+# 11. GHOST COMBO (Interactive Hybrid)
 ghost_logic() {
     case $1 in
         2)
-            echo -ne "${C1}Domain: ${NC}" 
-            read fqdn
-            echo -e ""
-            echo -ne "${C1}Email: ${NC}" 
-            read email
-            echo -e ""
             echo -ne "${C1}CF Token: ${NC}" 
             read cf_token
             
+            # 1. Cloudflare
             clean_token=$(echo "$cf_token" | grep -oE "ey[A-Za-z0-9\-_=]+" | head -n 1)
             [ -z "$clean_token" ] && clean_token=$cf_token
 
@@ -228,22 +205,11 @@ ghost_logic() {
             dpkg -i cf.deb && rm cf.deb
             cloudflared service install "$clean_token"
 
-            # Re-using the corrected Panel Logic here too
-            db_pass=$(openssl rand -base64 12)
-            bash <(curl -s https://pterodactyl-installer.se) <<EOF
-0
-y
-$db_pass
-UTC
-$email
-$email
-Admin
-User
-$fqdn
-y
-y
-y
-EOF
+            # 2. Panel (Interactive)
+            echo -e "\n${G1}Launching Panel Installer... (Select 0 manually)${NC}"
+            bash <(curl -s https://pterodactyl-installer.se)
+
+            # 3. Blueprint
             bash <(curl -L https://github.com/teamblueprint/main/releases/latest/download/blueprint.sh)
             ;;
     esac
