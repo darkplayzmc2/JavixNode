@@ -118,18 +118,29 @@ cf_logic() {
     esac
 }
 
-# 6. Tailscale (FIXED LINK DISPLAY)
+# 6. Tailscale (FIXED & FORCED LINK)
 ts_logic() {
     case $1 in
         1) tailscale status ;;
         2) 
             echo -e "${C1}Downloading Tailscale packages...${NC}"
             curl -fsSL https://tailscale.com/install.sh | sh
+            
+            # Locate binary to ensure it runs
+            if [ -f "/usr/bin/tailscale" ]; then
+                TS_BIN="/usr/bin/tailscale"
+            else
+                TS_BIN="tailscale"
+            fi
+            
             echo -e "\n${Y1}--- AUTHENTICATION REQUIRED ---${NC}"
-            echo -e "${G1}The system will now generate a login link.${NC}"
-            echo -e "${G1}Copy the link below and paste it into your browser to connect.${NC}"
+            echo -e "${G1}System will now attempt to connect.${NC}"
+            echo -e "${G1}If a link appears below, COPY IT to your browser.${NC}"
             echo -e "${Y1}-------------------------------${NC}\n"
-            sudo tailscale up
+            sleep 2
+            
+            # Run in foreground to force link display
+            sudo $TS_BIN up
             ;;
         4) tailscale down && apt remove tailscale -y ;;
     esac
